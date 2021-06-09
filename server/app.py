@@ -80,6 +80,10 @@ def handle_bye(room_name):
     handle_p2pmessage('bye',room_name)
     rooms_db.pop(user_id, None)
 
+@socketio.on('test')
+def handle_test(data):
+    print(f"test : {data}")
+
 # ===========================================================================
 # Run server
 if __name__ == '__main__':

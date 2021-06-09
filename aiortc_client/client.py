@@ -30,12 +30,10 @@ from aiortc.contrib.media import MediaPlayer, MediaRelay
 
 options = {"framerate": "30", "video_size": "640x480"}
 
-
-if __name__ == "main" :
+if __name__ == "__main__" :
     input("Press Enter to continue...")
-
+    sio = socketio.Client(ssl_verify=False)
+    sio.connect('https://localhost:443')
+    sio.emit('test','aaa')
+    print('my sid is', sio.sid)
     # create Peerconnection
-
-    pc = RTCPeerConnection()
-
-    emit('join',)
