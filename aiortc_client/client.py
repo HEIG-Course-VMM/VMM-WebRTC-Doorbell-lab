@@ -6,7 +6,7 @@ import os
 import platform
 import ssl
 
-from aiohttp import web
+import socketio
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer, MediaRelay
@@ -33,3 +33,9 @@ options = {"framerate": "30", "video_size": "640x480"}
 
 if __name__ == "main" :
     input("Press Enter to continue...")
+
+    # create Peerconnection
+
+    pc = RTCPeerConnection()
+
+    emit('join',)
