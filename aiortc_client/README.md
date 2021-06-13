@@ -10,7 +10,7 @@ python3 -m pip install "python-socketio[asyncio_client]==5.3.0"
 Launching the client
 
 ```bash
-python3 
+python3 apprtc.py
 ```
 
 
