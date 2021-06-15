@@ -83,7 +83,7 @@ async def run():
             if answer != 'new_peer':
                 raise Exception
         except (asyncio.TimeoutError, Exception):
-                print('peer fialed to connect on time, starting again')
+                print('peer failed to connect on time, starting again')
                 await sio.emit('bye', room_name)
                 await sio.disconnect()
                 await sio.wait()
