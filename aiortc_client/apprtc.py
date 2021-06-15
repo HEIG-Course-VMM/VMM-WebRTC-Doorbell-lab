@@ -2,6 +2,7 @@ import socketio
 import asyncio
 import random
 import string
+import RPi.GPIO as GPIO # Import Raspberry Pi GPIO library
  
 
 # asyncio
@@ -25,30 +26,40 @@ Loop forever:
 13. Send a 'bye' message back and clean everything up (peerconnection, media, signaling).
 """
 async def run():
-   
-        
-    while 1:
+    while True:
+        GPIO.wait_for_edge(10, GPIO.RISING)
+        print("button was pressed")
         #Connect to the signaling server.
         await sio.connect('https://192.168.43.240:443')
         print('my sid is', sio.sid)
 
         #Join a conference room with a random name (send 'create' signal with room name).
         room_name = ''.join(random.SystemRandom().choice(string.ascii_letters) for _ in range(10))
-        print(room_name)
+        print('my room is', room_name)
         await sio.emit('join', room_name)
-        
-
+        print('room created')
+            
+        #Send a 'bye' message back and clean everything up (peerconnection, media, signaling).
         await sio.emit('bye', room_name)
-        break
+        print('room byed')
+        await sio.disconnect()
+        print('disconnected')
     
 
-if __name__ == "__main__":
+if __name__ == "__main__":   
+    GPIO.setwarnings(False) # Ignore warning for now
+    GPIO.setmode(GPIO.BOARD) # Use physical pin numbering
+    GPIO.setup(10, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Set pin 10 to be an input pin and set initial value to be pulled low (off)
+
+
     # run event loop
     loop = asyncio.get_event_loop()
     try:
         loop.run_until_complete(run())
     except KeyboardInterrupt:
-        pass
-    finally:
-        loop.run_until_complete(sio.disconnect())
+        print("Ctrl+C pressed...")
+        sys.exit(1)
+    #finally:
+        #a = 1
+        #loop.run_until_complete(sio.disconnect())
     

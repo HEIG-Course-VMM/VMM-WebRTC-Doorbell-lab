@@ -7,6 +7,11 @@ python3 -m pip install aiortc
 python3 -m pip install "python-socketio[asyncio_client]==5.3.0"
 ```
 
+Install the necessary Python libraries for the push button
+```bash
+sudo apt-get install python-rpi.gpio python3-rpi.gpio
+```
+
 Launching the client
 
 ```bash
