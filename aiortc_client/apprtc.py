@@ -68,6 +68,7 @@ async def run():
         print(answer)
         if answer == 'full' or answer == 'joined':
             print('starting again')
+            await sio.emit('bye', room_name)
             await sio.disconnect()
             await sio.wait()
             continue
@@ -76,11 +77,20 @@ async def run():
         #5. Send a message (SMS, Telegram, email, ...) to the user with the room name. Or simply start by printing it on the terminal.
         print('wesh connecte toi à la room', room_name)
         #6. Wait (with timeout) for a 'new_peer' message. If timeout, send 'bye' to signaling server and return to the loop.
-        while True: #how to timeout tho
-            answer = await queue.get()
-            if answer == 'new_peer':
-                print('peer connected \o/')
-                break
+        
+        try:
+            answer = await asyncio.wait_for(queue.get(), timeout=40.0)
+            if answer != 'new_peer':
+                raise Exception
+        except (asyncio.TimeoutError, Exception):
+                print('peer fialed to connect on time, starting again')
+                await sio.emit('bye', room_name)
+                await sio.disconnect()
+                await sio.wait()
+                continue
+            
+        print('peer connected \o/')
+
         #???????????7. Wait (with timeout) for an 'invite' message. If timemout, send 'bye to signaling server and return to the loop. 
         #8. Acquire the media stream from the Webcam.
         #9. Create the PeerConnection and add the streams from the local Webcam.
