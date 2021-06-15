@@ -23,7 +23,7 @@ def index():
 #   - "ice_candidate(candidate)": send and ICE candidate to the peer.
 # Additionally, the "connect" and "disconnect" events are received for clients
 # ===========================================================================
-socketio = SocketIO(app)
+socketio = SocketIO(app, logger=True, engineio_logger=True)
 
 @socketio.on('connect')
 def handle_connect():
