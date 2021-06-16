@@ -1,12 +1,25 @@
 import socketio
 import asyncio
+import os
 import random
 import string
+import telegram
 import RPi.GPIO as GPIO # Import Raspberry Pi GPIO library
+
 from time import sleep
- 
-TIMEOUT = 10.0
-LED = True
+from dotenv import load_dotenv
+
+#dotenv
+load_dotenv()
+SERV_URL = os.getenv('SERV_URL')
+LED = os.getenv('LED')
+TIMEOUT = float(os.getenv('TIMEOUT'))
+TOKEN = os.getenv('TOKEN')
+CHATID = os.getenv('CHATID')
+
+#Telegram
+bot = telegram.Bot(token=TOKEN)
+
 
 # asyncio
 sio = socketio.AsyncClient(ssl_verify=False,logger=True, engineio_logger=True)
@@ -18,10 +31,11 @@ def blink_led(times):
         GPIO.output(8, GPIO.LOW)  
         sleep(0.3)
 
-async def cleanup_restart(room_name):
+async def cleanup_restart(queue, room_name):
     if LED:
         blink_led(3)
     await sio.emit('bye', room_name)
+    await asyncio.sleep(1) #Needed for server to receive bye message apparently...
     await sio.disconnect()
     await sio.wait()
 
@@ -64,11 +78,12 @@ async def run():
         #print("button was pressed")
 
         #2. Connect to the signaling server.
-        await sio.connect('https://192.168.43.240:443')
+        await sio.connect(SERV_URL)
         print('my sid is', sio.sid)
 
         #3. Join a conference room with a random name (send 'create' signal with room name).
         room_name = ''.join(random.SystemRandom().choice(string.ascii_letters) for _ in range(10))
+        #room_name = 'tt'
         print('my room is', room_name)
 
         while not sio.connected:
@@ -82,12 +97,14 @@ async def run():
         print(answer)
         if answer == 'full' or answer == 'joined':
             print('wrong answer')
-            await cleanup_restart(room_name)
+            await cleanup_restart(queue, room_name)
             continue
         
         print('room created')
         #5. Send a message (SMS, Telegram, email, ...) to the user with the room name. Or simply start by printing it on the terminal.
         print('wesh connecte toi à la room', room_name)
+        message = "Someone just rang your doorbell! Go check who it is at " + SERV_URL + " in the room " + room_name
+        bot.sendMessage(CHATID, message)
         #6. Wait (with timeout) for a 'new_peer' message. If timeout, send 'bye' to signaling server and return to the loop.
         
         try:
@@ -96,24 +113,25 @@ async def run():
                 raise Exception
         except (asyncio.TimeoutError, Exception):
                 print('peer failed to connect on time')
-                await cleanup_restart(room_name)
+                await cleanup_restart(queue, room_name)
                 continue
             
         print('peer connected \o/')
 
-'''
+        
         #7. Wait (with timeout) for an 'invite' message. If timemout, send 'bye' to signaling server and return to the loop. 
         try:
             answer = await asyncio.wait_for(queue.get(), timeout=TIMEOUT)
+            print(answer)
             if answer != 'invite':
                 raise Exception
         except (asyncio.TimeoutError, Exception):
                 print('invite not received on time')
-                await cleanup_restart(room_name)
+                await cleanup_restart(queue, room_name)
                 continue
 
         print(offer)
-'''
+        
 
         #8. Acquire the media stream from the Webcam.
         #9. Create the PeerConnection and add the streams from the local Webcam.
@@ -121,11 +139,7 @@ async def run():
         #11. Generate the local session description (answer) and send it as 'ok' to the signaling server.
         #12. Wait (with timeout) for a 'bye' message.    
         #13. Send a 'bye' message back and clean everything up (peerconnection, media, signaling).
-        #await sio.emit('bye', room_name)
-        #print('room byed')
-        #await sio.disconnect()
-        print('disconnected')
-        break
+        await cleanup_restart(room_name)
     
 
 if __name__ == "__main__":   
@@ -135,7 +149,6 @@ if __name__ == "__main__":
     if LED:
         GPIO.setup(8, GPIO.OUT, initial=GPIO.LOW)   # Set pin 8 to be an output pin and set initial value to low (off)
          
-
 
     # run event loop
     loop = asyncio.get_event_loop()

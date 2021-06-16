@@ -12,6 +12,16 @@ Install the necessary Python libraries for the push button
 sudo apt-get install python-rpi.gpio python3-rpi.gpio
 ```
 
+Python lib for TG bot
+```bash
+python3 -m pip install python-telegram-bot
+```
+
+Env vars file
+```bash
+python3 -m pip install python-dotenv
+```
+
 Follow this tuto for the LED
 https://raspberrypihq.com/making-a-led-blink-using-the-raspberry-pi-and-python/
 
