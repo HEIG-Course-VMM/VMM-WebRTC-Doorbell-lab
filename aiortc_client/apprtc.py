@@ -3,20 +3,30 @@ import asyncio
 import random
 import string
 import RPi.GPIO as GPIO # Import Raspberry Pi GPIO library
+from time import sleep
  
+TIMEOUT = 10.0
+LED = True
 
 # asyncio
 sio = socketio.AsyncClient(ssl_verify=False,logger=True, engineio_logger=True)
 
-ok = True
+def blink_led(times):
+    for _ in range(times):
+        GPIO.output(8, GPIO.HIGH)
+        sleep(0.3)                  
+        GPIO.output(8, GPIO.LOW)  
+        sleep(0.3)
 
-    
+async def cleanup_restart(room_name):
+    if LED:
+        blink_led(3)
+    await sio.emit('bye', room_name)
+    await sio.disconnect()
+    await sio.wait()
+
+offer = ''
 async def run():
-    '''
-    @sio.event
-    async def connect():
-        await sio.emit('join', 'b')#room_name)
-'''
     @sio.event
     async def created(data):
         print('ok')
@@ -37,13 +47,17 @@ async def run():
         print('wouw')
         queue.put_nowait('new_peer')
 
+    @sio.event
+    async def invite(data):
+        print('wouw')
+        queue.put_nowait('invite')
+        offer = data
+
 
 
 
     while True:
-        
-        # Create a queue that we will use to store the server responses.
-        queue = asyncio.Queue()
+        queue = asyncio.Queue() # Create a queue that we will use to store the server responses.
         #1. Wait until pushbutton press event.
         print('press button...')
         GPIO.wait_for_edge(10, GPIO.RISING)
@@ -67,10 +81,8 @@ async def run():
         answer = await queue.get()
         print(answer)
         if answer == 'full' or answer == 'joined':
-            print('starting again')
-            await sio.emit('bye', room_name)
-            await sio.disconnect()
-            await sio.wait()
+            print('wrong answer')
+            await cleanup_restart(room_name)
             continue
         
         print('room created')
@@ -79,19 +91,30 @@ async def run():
         #6. Wait (with timeout) for a 'new_peer' message. If timeout, send 'bye' to signaling server and return to the loop.
         
         try:
-            answer = await asyncio.wait_for(queue.get(), timeout=40.0)
+            answer = await asyncio.wait_for(queue.get(), timeout=TIMEOUT)
             if answer != 'new_peer':
                 raise Exception
         except (asyncio.TimeoutError, Exception):
-                print('peer failed to connect on time, starting again')
-                await sio.emit('bye', room_name)
-                await sio.disconnect()
-                await sio.wait()
+                print('peer failed to connect on time')
+                await cleanup_restart(room_name)
                 continue
             
         print('peer connected \o/')
 
-        #???????????7. Wait (with timeout) for an 'invite' message. If timemout, send 'bye to signaling server and return to the loop. 
+'''
+        #7. Wait (with timeout) for an 'invite' message. If timemout, send 'bye' to signaling server and return to the loop. 
+        try:
+            answer = await asyncio.wait_for(queue.get(), timeout=TIMEOUT)
+            if answer != 'invite':
+                raise Exception
+        except (asyncio.TimeoutError, Exception):
+                print('invite not received on time')
+                await cleanup_restart(room_name)
+                continue
+
+        print(offer)
+'''
+
         #8. Acquire the media stream from the Webcam.
         #9. Create the PeerConnection and add the streams from the local Webcam.
         #10. Add the SDP from the 'invite' to the peer connection.
@@ -109,6 +132,9 @@ if __name__ == "__main__":
     GPIO.setwarnings(False) # Ignore warning for now
     GPIO.setmode(GPIO.BOARD) # Use physical pin numbering
     GPIO.setup(10, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Set pin 10 to be an input pin and set initial value to be pulled low (off)
+    if LED:
+        GPIO.setup(8, GPIO.OUT, initial=GPIO.LOW)   # Set pin 8 to be an output pin and set initial value to low (off)
+         
 
 
     # run event loop
