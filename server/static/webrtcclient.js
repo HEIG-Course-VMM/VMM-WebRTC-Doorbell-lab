@@ -16,7 +16,7 @@ var socket; // Socket.io connection to the Web server for signaling.
 // Function call, when call button is clicked.
 async function call() {
   // Enable local video stream from camera or screen sharing
-  var localStream = await enable_camera();
+  //var localStream = await enable_camera();
 
   // Create Socket.io connection for signaling and add handlers
   // Then start signaling to join a room
@@ -324,7 +324,6 @@ function hangUp() {
   socket.emit('bye', room);
 
   // Switch off the local stream by stopping all tracks of the local stream
-  var localVideo = document.getElementById('localVideo')
   var remoteVideo = document.getElementById('remoteVideo')
 
   //remove the tracks from localVideo and remoteVideo
@@ -332,13 +331,8 @@ function hangUp() {
     remoteVideo.srcObject.getTracks().forEach(track => track.stop());
   }
 
-  if (localVideo.srcObject) {
-    localVideo.srcObject.getTracks().forEach(track => track.stop());
-  }
-
   //set localVideo and remoteVideo source objects to null
   remoteVideo.srcObject = null;
-  localVideo.srcObject = null;
 
   //close the peerConnection and set it to null
   if(peerConnection) {
