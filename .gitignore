@@ -1,2 +1,2 @@
 *.pem
-aiortc_client/.env
+*.env
