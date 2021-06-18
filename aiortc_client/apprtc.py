@@ -12,7 +12,9 @@ from dotenv import load_dotenv
 from aiortc import (
     RTCPeerConnection, 
     RTCSessionDescription, 
-    VideoStreamTrack
+    VideoStreamTrack,
+    RTCIceServer,
+    RTCConfiguration
 )
 from aiortc.contrib.media import MediaPlayer
 from aiortc.contrib.signaling import BYE, add_signaling_arguments, create_signaling
@@ -101,7 +103,6 @@ async def run():
 
         #4. Wait for response. If response is 'joined' or 'full', stop processing and return to the loop. Go on if response is 'created'.
         answer = await queue.get()
-        print(answer[0])
         if answer[0] == 'full' or answer[0] == 'joined':
             print('wrong answer')
             await cleanup_restart(room_name)
@@ -122,9 +123,6 @@ async def run():
                 print('peer failed to connect on time')
                 await cleanup_restart(room_name)
                 continue
-            
-
-        
 
         #8. Acquire the media stream from the Webcam.
         video_player = MediaPlayer('/dev/video0', format='v4l2', options={
@@ -133,16 +131,16 @@ async def run():
         audio_player = MediaPlayer("default", format="pulse")
 
         #9. Create the PeerConnection and add the streams from the local Webcam.
-        #11. Generate the local session description (offer) and send it as 'invite' to the signaling server.
-        pc = RTCPeerConnection()
+        ice_server = RTCIceServer(urls='stun:stun.l.google.com:19302')
+        pc = RTCPeerConnection(configuration=RTCConfiguration(iceServers=[ice_server]))
         pc.addTrack(video_player.video)
         pc.addTrack(audio_player.audio)
 
+        #11. Generate the local session description (offer) and send it as 'invite' to the signaling server.
         offer = await pc.createOffer()
         await pc.setLocalDescription(offer)
-        print("offer", offer)
 
-        sdp_offer = {"type": offer.type, "sdp": offer.sdp}
+        sdp_offer = {"type": pc.localDescription.type, "sdp": pc.localDescription.sdp}
         await sio.emit('invite', sdp_offer)
 
         #10. Add the SDP from the 'ok' to the peer connection.
@@ -154,7 +152,15 @@ async def run():
         sdp_answer = RTCSessionDescription(answer[1]['sdp'], answer[1]['type'])
         await pc.setRemoteDescription(sdp_answer)
 
-        #12. Wait (with timeout) for a 'bye' message.    
+        #12. Wait (with timeout) for a 'bye' message.
+        try:
+            answer = await asyncio.wait_for(queue.get(), timeout=TIMEOUT)
+            if answer[0] != 'bye':
+                raise Exception
+        except (asyncio.TimeoutError, Exception):
+                print('peer failed to connect on time')
+                await cleanup_restart(room_name)
+                continue    
         #13. Send a 'bye' message back and clean everything up (peerconnection, media, signaling).
         await cleanup_restart(room_name)
     
