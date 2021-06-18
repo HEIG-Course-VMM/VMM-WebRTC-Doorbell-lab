@@ -25,7 +25,7 @@ async function call() {
   call_room(socket);
 
   // Create peerConneciton and add handlers
-  peerConnection = create_peerconnection(localStream);
+  peerConnection = create_peerconnection(/*localStream*/);
   add_peerconnection_handlers(peerConnection);
 }
 
@@ -136,16 +136,16 @@ function call_room(socket) {
 
 // --------------------------------------------------------------------------
 // Create a new RTCPeerConnection and connect local stream
-function create_peerconnection(localStream) {
+function create_peerconnection(/*localStream*/) {
   const pcConfiguration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}
 
   //create a new RTCPeerConnection with this configuration
   var pc = new RTCPeerConnection([pcConfiguration]);
 
   //add all tracks of the local stream to the peerConnection
-  localStream.getTracks().forEach(track => {
-    pc.addTrack(track, localStream);
-});
+  //localStream.getTracks().forEach(track => {
+  //  pc.addTrack(track, localStream);
+  //});
 
   return pc;
 }
@@ -197,7 +197,7 @@ async function handle_invite(offer) {
   //use setLocalDescription (with await) to add the answer SDP to peerConnection
   await peerConnection.setLocalDescription(answer);
   //send an 'ok' message with the answer to the peer.
-  socket.emit('ok', answer); 
+  //socket.emit('ok', answer); 
 }
 
 // --------------------------------------------------------------------------
@@ -223,7 +223,9 @@ async function handle_local_icecandidate(event) {
   // if yes, send a 'ice_candidate' message with the candidate to the peer
   if (event.candidate) {
     // Send the candidate to the remote peer
-    socket.emit('ice_candidate', event.candidate);
+    //socket.emit('ice_candidate', event.candidate);
+  } else {
+    socket.emit('ok', peerConnection.localDescription);
   }
 }
 
