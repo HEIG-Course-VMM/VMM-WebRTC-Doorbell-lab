@@ -16,8 +16,7 @@ from aiortc import (
     RTCIceServer,
     RTCConfiguration
 )
-from aiortc.contrib.media import MediaPlayer
-from aiortc.contrib.signaling import BYE, add_signaling_arguments, create_signaling
+from aiortc.contrib.media import MediaPlayer, MediaRecorder
 
 #dotenv
 load_dotenv()
@@ -30,11 +29,16 @@ CHATID = os.getenv('CHATID')
 #Telegram
 bot = telegram.Bot(token=TOKEN)
 
-
 # asyncio
 sio = socketio.AsyncClient(ssl_verify=False,logger=True, engineio_logger=True)
 
-messages = ["created", "joined", "full", "new_peer", "ok"]
+#peerConnection
+ice_server = RTCIceServer(urls='stun:stun.l.google.com:19302')
+pc = RTCPeerConnection(configuration=RTCConfiguration(iceServers=[ice_server]))
+
+sio_messages = ["created", "joined", "full", "new_peer", "ok", "bye"]
+pc_messages = ["track"]
+stopRecorder = False
 
 def blink_led(times):
     for _ in range(times):
@@ -57,34 +61,28 @@ def receiver_queue(signaling, messages):
         signaling.on(signal, lambda content='', signal=signal: queue.put_nowait((signal, content)))
     return queue
 
+async def run2():
+    @pc.on("track")
+    def on_track(track):
+        print("Receiving %s" % track.kind)
+        pc_queue.put_nowait(('track', track))
+
+    pc_queue = asyncio.Queue()
+    recorder = MediaRecorder("default", format="alsa")
+    track = await pc_queue.get()
+    recorder.addTrack(track[1])
+    await recorder.start()
+
+    #while not stopRecorder:
+        
+    
+    #await recorder.stop()
 
 async def run():
-    '''
-    @sio.event
-    async def created(data):
-        queue.put_nowait('created')
-
-    @sio.event
-    async def joined(data):
-        queue.put_nowait('joined')
-
-    @sio.event
-    async def full(data):
-        queue.put_nowait('full')
-
-    @sio.event
-    async def new_peer():
-        queue.put_nowait('new_peer')
-
-    @sio.event
-    async def ok(data):
-        queue.put_nowait(('ok', data))
-    '''
-
-
     while True:
-        #queue = asyncio.Queue() # Create a queue that we will use to store the server responses.
-        queue = receiver_queue(sio, messages)
+        stopRecorder = False
+        queue = receiver_queue(sio, sio_messages)
+        pc_queue = receiver_queue(pc, pc_messages)
         #1. Wait until pushbutton press event.
         print('press button...')
         GPIO.wait_for_edge(10, GPIO.RISING)
@@ -92,7 +90,7 @@ async def run():
         #2. Connect to the signaling server.
         await sio.connect(SERV_URL)
 
-        #3. Join a conference room with a random name (send 'create' signal with room name).
+        #3. Join a conference room with a random name (send 'join' signal with room name).
         room_name = ''.join(random.SystemRandom().choice(string.ascii_letters) for _ in range(10))
 
         while not sio.connected:
@@ -104,7 +102,7 @@ async def run():
         #4. Wait for response. If response is 'joined' or 'full', stop processing and return to the loop. Go on if response is 'created'.
         answer = await queue.get()
         if answer[0] == 'full' or answer[0] == 'joined':
-            print('wrong answer')
+            print('room already exists')
             await cleanup_restart(room_name)
             continue
         
@@ -131,19 +129,22 @@ async def run():
         audio_player = MediaPlayer("default", format="pulse")
 
         #9. Create the PeerConnection and add the streams from the local Webcam.
-        ice_server = RTCIceServer(urls='stun:stun.l.google.com:19302')
-        pc = RTCPeerConnection(configuration=RTCConfiguration(iceServers=[ice_server]))
+        #ice_server = RTCIceServer(urls='stun:stun.l.google.com:19302')
+        #pc = RTCPeerConnection(configuration=RTCConfiguration(iceServers=[ice_server]))
         pc.addTrack(video_player.video)
         pc.addTrack(audio_player.audio)
 
-        #11. Generate the local session description (offer) and send it as 'invite' to the signaling server.
+        #10. Generate the local session description (offer) and send it as 'invite' to the signaling server.
         offer = await pc.createOffer()
         await pc.setLocalDescription(offer)
 
+        while pc.iceGatheringState != 'complete':
+            pass
+        
         sdp_offer = {"type": pc.localDescription.type, "sdp": pc.localDescription.sdp}
         await sio.emit('invite', sdp_offer)
 
-        #10. Add the SDP from the 'ok' to the peer connection.
+        #11. Add the SDP from the 'ok' to the peer connection.
         answer = await queue.get()
         if answer[0] != 'ok':
             print("peer didn't send SDP answer")
@@ -152,20 +153,30 @@ async def run():
         sdp_answer = RTCSessionDescription(answer[1]['sdp'], answer[1]['type'])
         await pc.setRemoteDescription(sdp_answer)
 
+        #pc_queue = receiver_queue(pc, pc_messages)
+        track = await pc_queue.get()
+        recorder = MediaRecorder("default", format="alsa")
+        recorder.addTrack(track[1])
+        await recorder.start()
+        
+
         #12. Wait (with timeout) for a 'bye' message.
         try:
-            answer = await asyncio.wait_for(queue.get(), timeout=TIMEOUT)
+            answer = await asyncio.wait_for(queue.get(), timeout=1*60)
             if answer[0] != 'bye':
                 raise Exception
         except (asyncio.TimeoutError, Exception):
-                print('peer failed to connect on time')
-                await cleanup_restart(room_name)
-                continue    
+                print('no bye received')
+
         #13. Send a 'bye' message back and clean everything up (peerconnection, media, signaling).
+        await pc.close()
+        video_player = None
+        audio_player = None
+        await recorder.stop()
         await cleanup_restart(room_name)
     
 
-if __name__ == "__main__":   
+if __name__ == "__main__":  
     GPIO.setwarnings(False) # Ignore warning for now
     GPIO.setmode(GPIO.BOARD) # Use physical pin numbering
     GPIO.setup(10, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Set pin 10 to be an input pin and set initial value to be pulled low (off)
