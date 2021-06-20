@@ -216,7 +216,7 @@ async function handle_ok(answer) {
 
 async function handle_joined(data) {
     console.log("joined : " + data);
-    var offer = pc.createOffer();
+    var offer = peerConnection.createOffer();
     pc.setLocalDescription(offer);
 }
 
