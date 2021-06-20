@@ -93,7 +93,7 @@ function add_signaling_handlers(socket) {
   );
 
   socket.on('joined', (data) =>	   
-	    handle_joined()
+	    handle_joined(data)
   );
 
   socket.on('full', (data) => 
@@ -214,7 +214,7 @@ async function handle_ok(answer) {
   await peerConnection.setRemoteDescription(answer)
 }
 
-async function handle_joined() {
+async function handle_joined(data) {
     console.log("joined : " + data);
     var offer = pc.createOffer();
     pc.setLocalDescription(offer);
