@@ -92,8 +92,9 @@ function add_signaling_handlers(socket) {
     console.log("created : " + data)
   );
 
-  socket.on('joined', (data) => 
-    console.log("joined : " + data)
+  socket.on('joined', (data) =>
+	    console.log("joined : " + data)
+	    handle_joined();
   );
 
   socket.on('full', (data) => 
@@ -184,8 +185,12 @@ function add_peerconnection_handlers(peerConnection) {
 async function handle_new_peer(room){
   console.log('Peer has joined room: ' + room + '. I am the Caller.');
   create_datachannel(peerConnection); // MUST BE CALLED BEFORE createOffer
+
   var offer = await peerConnection.createOffer();
+
   await peerConnection.setLocalDescription(offer);
+
+  socket.emit('invite', offer); 
 }
 
 // --------------------------------------------------------------------------
@@ -210,6 +215,11 @@ async function handle_ok(answer) {
   await peerConnection.setRemoteDescription(answer)
 }
 
+async function handle_joined() {
+    var offer = pc.createOffer();
+    pc.setLocalDescription(offer);
+}
+
 // ==========================================================================
 // 5. ICE negotiation and remote stream handling
 // ==========================================================================
@@ -223,7 +233,7 @@ async function handle_local_icecandidate(event) {
     console.log(event.candidate);
   }
   else{
-    socket.emit('ice_candidate', pc.localDescription); 
+      socket.emit('invite', pc.localDescription);
   }
 }
 

@@ -10,7 +10,7 @@ from aiortc import RTCPeerConnection,RTCSessionDescription
 #*****************************
 SERVER_URL = "https://192.168.1.115:443"
 ROOM_NAME_SIZE = 8
-TIMEOUT=1
+TIMEOUT=30
 VIDEO_SIZE = "320x240"
 
 #*****************************
