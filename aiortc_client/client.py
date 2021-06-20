@@ -19,42 +19,42 @@ VIDEO_SIZE = "320x240"
 def getRandomName(length):
     return ''.join(random.choice(string.ascii_lowercase) for i in range(length))
 
-def createQueue(sio):
-    messagesQueue = asyncio.Queue()
-    messages = ["created", "joined", "full", "new_peer", "invite", "ok", "ice_candidate", "bye"]
+def receiver_queue(signaling, messages):
+    queue = asyncio.Queue()
     for signal in messages:
-        sio.on(signal, lambda content='', signal=signal: messagesQueue.put_nowait((signal, content)))
-    return messagesQueue
+        signaling.on(signal, lambda content, signal=signal: queue.put_nowait((signal, content)))
+    return queue
 
 async def main():
     sio = socketio.AsyncClient(ssl_verify=False)
-    messagesQueue = createQueue(sio)
+    messages = ["created", "joined", "full", "new_peer", "invite", "ok", "ice_candidate", "bye"]
+    messagesQueue = receiver_queue(sio, messages)
 
     while True:
         #Wait until keypress (to be replaced later by the pushbutton press event)
         input("Press enter to continue")
-
         print("Connecting...")
+        
         #Connect to the signaling server.
         await sio.connect(SERVER_URL)
         print("Connected")
-
+        
         #Join a conference room with a random name (send 'create' signal with room name).
         roomName = getRandomName(ROOM_NAME_SIZE)
-        await sio.emit("create", roomName)
+        await sio.emit("join", roomName)
         print("create room : " + roomName)
-
+        
         #Wait for response. If response is 'joined' or 'full', stop processing and return to the loop. Go on if response is 'created'.
         response = await messagesQueue.get()
         responseMessage = response[0]
-
+        
         print(responseMessage)
-
+        
         if responseMessage == "full" or responseMessage == "joined":
             continue
         
         #Send a message (SMS, Telegram, email, ...) to the user with the room name. Or simply start by printing it on the terminal. 
-        print("Dring dring : " + SERVER_URL + "/" + roomName)
+        print("Dring dring : " + SERVER_URL + "?id=" + roomName)
 
         videoPlayer = None
         audioPlayer = None
@@ -75,11 +75,10 @@ async def main():
                 audioPlayer = MediaPlayer("default", format="pulse")  
                 #Create the PeerConnection and add the streams from the local Webcam.
                 pc = RTCPeerConnection()
-
+                
                 #Add the SDP from the 'invite' to the peer connection.
                 offer = response[1]
                 sdp = RTCSessionDescription(offer['sdp'], offer['type'])
-
                 await pc.setRemoteDescription(sdp)
                 
                 #Generate the local session description (answer) and send it as 'ok' to the signaling server.
@@ -91,7 +90,7 @@ async def main():
                 del audioPlayer
 
         except asyncio.TimeoutError:
-            print("Timeout 'new_peer' after " + TIMEOUT + " s")
+            print("Timeout 'new_peer' after " + str(TIMEOUT) + " s")
             await sio.emit("bye", roomName)  
         
 #*****************************

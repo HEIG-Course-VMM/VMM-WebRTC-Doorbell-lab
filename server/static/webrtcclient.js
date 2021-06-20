@@ -184,12 +184,8 @@ function add_peerconnection_handlers(peerConnection) {
 async function handle_new_peer(room){
   console.log('Peer has joined room: ' + room + '. I am the Caller.');
   create_datachannel(peerConnection); // MUST BE CALLED BEFORE createOffer
-
   var offer = await peerConnection.createOffer();
-
   await peerConnection.setLocalDescription(offer);
-
-  //socket.emit('invite', offer); 
 }
 
 // --------------------------------------------------------------------------
