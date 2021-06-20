@@ -189,7 +189,7 @@ async function handle_new_peer(room){
 
   await peerConnection.setLocalDescription(offer);
 
-  socket.emit('invite', offer); 
+  //socket.emit('invite', offer); 
 }
 
 // --------------------------------------------------------------------------
@@ -225,7 +225,9 @@ async function handle_local_icecandidate(event) {
   console.log('Received local ICE candidate: ', event);
   if (event.candidate) {
     console.log(event.candidate);
-    socket.emit('ice_candidate', event.candidate); 
+  }
+  else{
+    socket.emit('ice_candidate', pc.localDescription); 
   }
 }
 

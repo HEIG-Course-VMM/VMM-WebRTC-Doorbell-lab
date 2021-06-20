@@ -34,16 +34,21 @@ async def main():
         #Wait until keypress (to be replaced later by the pushbutton press event)
         input("Press enter to continue")
 
+        print("Connecting...")
         #Connect to the signaling server.
         await sio.connect(SERVER_URL)
-        
+        print("Connected")
+
         #Join a conference room with a random name (send 'create' signal with room name).
         roomName = getRandomName(ROOM_NAME_SIZE)
         await sio.emit("create", roomName)
+        print("create room : " + roomName)
 
         #Wait for response. If response is 'joined' or 'full', stop processing and return to the loop. Go on if response is 'created'.
         response = await messagesQueue.get()
         responseMessage = response[0]
+
+        print(responseMessage)
 
         if responseMessage == "full" or responseMessage == "joined":
             continue
