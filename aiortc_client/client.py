@@ -26,11 +26,11 @@ def receiver_queue(signaling, messages):
     return queue
 
 async def main():
-    sio = socketio.AsyncClient(ssl_verify=False)
-    messages = ["created", "joined", "full", "new_peer", "invite", "ok", "ice_candidate", "bye"]
-    messagesQueue = receiver_queue(sio, messages)
-
     while True:
+        sio = socketio.AsyncClient(ssl_verify=False)
+        messages = ["created", "joined", "full", "new_peer", "invite", "ok", "ice_candidate", "bye"]
+        messagesQueue = receiver_queue(sio, messages)
+        
         #Wait until keypress (to be replaced later by the pushbutton press event)
         input("Press enter to continue")
         print("Connecting...")
