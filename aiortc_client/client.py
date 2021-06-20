@@ -58,7 +58,8 @@ async def main():
 
         videoPlayer = None
         audioPlayer = None
-
+        peerConnection = None
+        
         #Wait (with timeout) for a 'new_peer' message. If timeout, send 'bye' to signaling server and return to the loop.        
         try:
             response = await asyncio.wait_for(messagesQueue.get(), timeout=TIMEOUT)
@@ -77,16 +78,22 @@ async def main():
                 print("invite")
                 #Acquire the media stream from the Webcam.
                 videoPlayer = MediaPlayer("/dev/video0", format="v4l2", options={"video_size": VIDEO_SIZE})
-                audioPlayer = MediaPlayer("default", format="pulse")  
+                audioPlayer = MediaPlayer("default", format="pulse")
+                
                 #Create the PeerConnection and add the streams from the local Webcam.
-                pc = RTCPeerConnection()
+                peerConnection = RTCPeerConnection()
+                peerConnection.addTrack(videoPlayer)
+                peerConnection.addTrack(audioPlayer)
                 
                 #Add the SDP from the 'invite' to the peer connection.
                 offer = response[1]
                 sdp = RTCSessionDescription(offer['sdp'], offer['type'])
                 await pc.setRemoteDescription(sdp)
+
                 #Generate the local session description (answer) and send it as 'ok' to the signaling server.
-                
+                answer = await peerConnection.createAnswer()
+                peerConnection.setLocalDescription(answer)
+                await sio.emit("ok", answer)
         except asyncio.TimeoutError:
             print("Timeout 'invite' after " + str(TIMEOUT) + " s")
             await sio.emit("bye", roomName)
@@ -94,7 +101,7 @@ async def main():
         
         #Wait (with timeout) for a 'bye' message.
         try:
-            response = await asyncio.wait_for(messagesQueue.get(), timeout=TIMEOUT)
+            response = await asyncio.wait_for(messagesQueue.get(), timeout=TIMEOUT*3)
             responseMessage = response[0]
             if responseMessage == "bye":
                 print("bye")
@@ -102,6 +109,7 @@ async def main():
                 await sio.emit("bye")
                 del videoPlayer
                 del audioPlayer
+                del peerConnection
         except asyncio.TimeoutError:
             print("Timeout bye " + str(TIMEOUT) + " s")
             await sio.emit("bye", roomName)                
