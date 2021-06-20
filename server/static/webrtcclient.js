@@ -89,16 +89,16 @@ function create_signaling_connection() {
 // Connect the message handlers for Socket.io signaling messages
 function add_signaling_handlers(socket) {
   socket.on('created', (data) => 
-    console.log("created : " + data)
+	    console.log("created : " + data);
   );
 
   socket.on('joined', (data) =>
-	    console.log("joined : " + data)
+	    console.log("joined : " + data);
 	    handle_joined();
   );
 
   socket.on('full', (data) => 
-    console.log("full : " + data)
+	    console.log("full : " + data);
   );
 
   // Event handlers for call establishment signaling messages
