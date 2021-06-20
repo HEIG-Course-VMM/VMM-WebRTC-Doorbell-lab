@@ -234,6 +234,7 @@ async function handle_local_icecandidate(event) {
   }
   else{
       socket.emit('invite', pc.localDescription);
+      console.log("Invite sent: ", pc.localDescription);
   }
 }
 
