@@ -1,0 +1,4 @@
+server/__pycache__/
+server/*.pyc
+server/cert.pem
+server/key.pem
