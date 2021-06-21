@@ -15,17 +15,18 @@ var socket; // Socket.io connection to the Web server for signaling.
 // --------------------------------------------------------------------------
 // Function call, when call button is clicked.
 async function call() {
-  // Enable local video stream from camera or screen sharing
-  // var localStream = await enable_camera();
-
+  // Enable local video stream from micro or screen sharing
+  var localStream = await enable_micro();
+  
+  
   // Create Socket.io connection for signaling and add handlers
   // Then start signaling to join a room
   socket = create_signaling_connection();
   add_signaling_handlers(socket);
   call_room(socket);
-
+  
   // Create peerConneciton and add handlers
-  peerConnection = create_peerconnection();
+  peerConnection = create_peerconnection(localStream);
   add_peerconnection_handlers(peerConnection);
 }
 
@@ -33,11 +34,11 @@ async function call() {
 // Enable camera
 // use getUserMedia or displayMedia (share screen). 
 // Then show it on localVideo.
-async function enable_camera() {
+async function enable_micro() {
 
   const constraints = {
-    'audio':false,
-    'video':true
+    'audio':true,
+    'video':false
   };
   console.log('Getting user media with constraints', constraints);
 
@@ -131,10 +132,14 @@ function call_room(socket) {
 
 // --------------------------------------------------------------------------
 // Create a new RTCPeerConnection and connect local stream
-function create_peerconnection() {
+function create_peerconnection(localStream) {
   const pcConfiguration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}
 
   var pc = new RTCPeerConnection(pcConfiguration);
+  
+  localStream.getTracks().forEach(track => {
+    pc.addTrack(track, localStream);
+  });
 
   return pc;
 }
@@ -165,7 +170,7 @@ async function handle_new_peer(room){
   console.log('Peer has joined room: ' + room + '. I am the Caller.');
   create_datachannel(peerConnection); // MUST BE CALLED BEFORE createOffer
 
-  var offer = await peerConnection.createOffer();
+  let offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
   socket.emit('invite', offer); 
 }
@@ -191,8 +196,10 @@ async function handle_ok(answer) {
 }
 
 async function handle_joined() {
-  var offer = pc.createOffer();
-  pc.setLocalDescription(offer);
+  console.log("Received Joined message")
+  let offer = await peerConnection.createOffer();
+  await peerConnection.setLocalDescription(offer);
+  console.log("Create offer and setlocaledescription done!");
 }
 
 // ==========================================================================
@@ -204,11 +211,11 @@ async function handle_joined() {
 // Send it to the peer via the server.
 async function handle_local_icecandidate(event) {
   console.log('Received local ICE candidate: ', event);
-  if (event.candidate) {
+  if (!event.candidate) {
+    // ignore if there is no candidate
     // socket.emit('ice_candidate',event.candidate);
-  } else {
-    var offer = pc.localDescription;
-    socket.emit('invite',offer)
+    let offer = peerConnection.localDescription;
+    socket.emit('invite', offer)
   }
 }
 
