@@ -84,24 +84,9 @@ function add_signaling_handlers(socket) {
   // --------------------------------------------------------
   //use the 'socket.on' method to create signaling message handlers:
 
-  // new_peer --> handle_new_peer
-  socket.on('new_peer', (data) => {
-    handle_new_peer(data);
-  });
-
   // invite --> handle_invite
   socket.on('invite', (data) => {
     handle_invite(data);
-  });
-
-  // ok --> handle_ok
-  socket.on('ok', (data) => {
-    handle_ok(data);
-  });
-
-  // ice_candidate --> handle_remote_icecandidate
-  socket.on('ice_candidate', (data) => {
-    handle_remote_icecandidate(data);
   });
 
   // bye --> hangUp
@@ -155,9 +140,6 @@ function add_peerconnection_handlers(peerConnection) {
 
   // ontrack -> handle_remote_track
   peerConnection.ontrack = event => handle_remote_track(event);
-
-  // ondatachannel -> handle_remote_datachannel
-  peerConnection.ondatachannel = event => handle_remote_datachannel(event);
 }
 
 // ==========================================================================
@@ -165,19 +147,6 @@ function add_peerconnection_handlers(peerConnection) {
 // ==========================================================================
 
 // --------------------------------------------------------------------------
-// Handle new peer: another peer has joined the room. I am the Caller.
-// Create SDP offer and send it to peer via the server.
-async function handle_new_peer(room){
-  console.log('Peer has joined room: ' + room + '. I am the Caller.');
-  create_datachannel(peerConnection); // MUST BE CALLED BEFORE createOffer
-
-  //use createOffer (with await) generate an SDP offer for peerConnection
-  var offer = await peerConnection.createOffer();
-  //use setLocalDescription (with await) to add the offer to peerConnection
-  await peerConnection.setLocalDescription(offer);
-  //send an 'invite' message with the offer to the peer.
-  socket.emit('invite', offer); 
-}
 
 // --------------------------------------------------------------------------
 // Caller has sent Invite with SDP offer. I am the Callee.
@@ -190,18 +159,7 @@ async function handle_invite(offer) {
   var answer = await peerConnection.createAnswer();
   //use setLocalDescription (with await) to add the answer SDP to peerConnection
   await peerConnection.setLocalDescription(answer);
-  //send an 'ok' message with the answer to the peer.
-  //socket.emit('ok', answer); 
-}
-
-// --------------------------------------------------------------------------
-// Callee has sent Ok answer. I am the Caller.
-// Set remote description.
-async function handle_ok(answer) {
-  console.log('Received OK answer from Callee: ', answer);
-  //use setRemoteDescription (with await) to add the answer SDP 
-  // the peerConnection
-  await peerConnection.setRemoteDescription(answer);
+  //wait to send an 'ok' message with the answer to the peer so that it will contain ICE candidates.
 }
 
 // ==========================================================================
@@ -214,22 +172,10 @@ async function handle_ok(answer) {
 async function handle_local_icecandidate(event) {
   console.log('Received local ICE candidate: ', event);
   //check if there is a new ICE candidate.
-  // if yes, send a 'ice_candidate' message with the candidate to the peer
-  if (event.candidate) {
-    // Send the candidate to the remote peer
-    //socket.emit('ice_candidate', event.candidate);
-  } else {
+  // Once there aren't anymore, send the localDescription containing ICE candidates
+  if (!event.candidate) {
     socket.emit('ok', peerConnection.localDescription);
   }
-}
-
-// --------------------------------------------------------------------------
-// The peer has sent a remote ICE candidate. Add it to the PeerConnection.
-async function handle_remote_icecandidate(candidate) {
-  console.log('Received remote ICE candidate: ', candidate);
-  //add the received remote ICE candidate to the peerConnection
-  await peerConnection.addIceCandidate(candidate); 
-
 }
 
 // ==========================================================================
@@ -281,6 +227,6 @@ function hangUp() {
 // --------------------------------------------------------------------------
 // Clean-up: hang up before unloading the window
 window.onbeforeunload = function(e) {
-  //hangUp();
-  socket.emit('bye', room);
+  hangUp();
+  //socket.emit('bye', room);
 }
