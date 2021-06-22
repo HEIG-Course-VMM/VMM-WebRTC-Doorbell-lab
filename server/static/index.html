@@ -2,18 +2,17 @@
 <html>
 
 <head>
-    <title>Simple WebRTC video call application</title>
+    <title>Simple WebRTC doorbell application</title>
     <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.5/build/pure-min.css">
 </head>
 
 <body>
     <div id='mainDiv' align="center">
-        <h1>Make free video calls</h1>
+        <h1>Doorbell</h1>
         <div id='callButtons' align="center">
             <button id="callButton" onclick="call()">Call</button>
             <button id="hangupButton" onclick="hangUp()">Hang up</button>
         </div>
-        <h3>Streams and data channels</h3>
         <table class="pure-table pure-table" width="90%">
             <thead>
                 <tr>
@@ -26,15 +25,7 @@
                 </tr>
             </tbody>
         </table>
-        <div id='chat' align="center">
-            <h3>Chat</h3>
-            <textarea id="dataChannelOutput" rows="5" style="width:90%" disabled></textarea>
-            <textarea id="dataChannelInput" rows="1" style="width:90%"></textarea>
-            <br>
-            <button id="sendButton" onclick="sendMessage()">Send message</button>
-        </div>
     </div>
-    <!-- <script src="https://cdn.socket.io/socket.io-4.1.2.js"></script> -->
     <script src="https://cdn.socket.io/3.1.3/socket.io.min.js" integrity="sha384-cPwlPLvBTa3sKAgddT6krw0cJat7egBga3DJepJyrLl4Q9/5WLra3rrnMcyTyOnh" crossorigin="anonymous"></script>
     <script src='/static/webrtcclient.js'></script>
 </body>

@@ -4,7 +4,6 @@
 // Global variables
 // ==========================================================================
 var peerConnection; // WebRTC PeerConnection
-var dataChannel; // WebRTC DataChannel
 var room; // Room name: Caller and Callee have to join the same 'room'.
 var socket; // Socket.io connection to the Web server for signaling.
 
@@ -16,7 +15,7 @@ var socket; // Socket.io connection to the Web server for signaling.
 // Function call, when call button is clicked.
 async function call() {
   // Enable local video stream from camera or screen sharing
-  //var localStream = await enable_camera();
+  var localStream = await enable_mic();
 
   // Create Socket.io connection for signaling and add handlers
   // Then start signaling to join a room
@@ -25,31 +24,26 @@ async function call() {
   call_room(socket);
 
   // Create peerConneciton and add handlers
-  peerConnection = create_peerconnection(/*localStream*/);
+  peerConnection = create_peerconnection(localStream);
   add_peerconnection_handlers(peerConnection);
 }
 
 // --------------------------------------------------------------------------
-// Enable camera
-// use getUserMedia or displayMedia (share screen). 
-// Then show it on localVideo.
-async function enable_camera() {
-
-  //set video to true, audio to false
-  const constraints = {'video': true, 'audio': false};
+// Enable mic
+async function enable_mic() {
+  const constraints = {'audio': true};
 
   console.log('Getting user media with constraints', constraints);
 
-  //use getUserMedia to get a local media stream from the camera.
-  //  If this fails, use getDisplayMedia to get a screen sharing stream.
+  //use getUserMedia to get a local media stream from the mic.
+  //  If this fails, print error and continue
   var stream;
   try {
     stream = await navigator.mediaDevices.getUserMedia(constraints);
   } catch(e) {
-    stream = await navigator.mediaDevices.getDisplayMedia(constraints);
+    console.log('No mic ;(')
   }
 
-  document.getElementById('localVideo').srcObject = stream;
   return stream;
 }
 
@@ -136,16 +130,16 @@ function call_room(socket) {
 
 // --------------------------------------------------------------------------
 // Create a new RTCPeerConnection and connect local stream
-function create_peerconnection(/*localStream*/) {
+function create_peerconnection(localStream) {
   const pcConfiguration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}
 
   //create a new RTCPeerConnection with this configuration
   var pc = new RTCPeerConnection([pcConfiguration]);
 
   //add all tracks of the local stream to the peerConnection
-  //localStream.getTracks().forEach(track => {
-  //  pc.addTrack(track, localStream);
-  //});
+  localStream.getTracks().forEach(track => {
+    pc.addTrack(track, localStream);
+  });
 
   return pc;
 }
@@ -251,66 +245,6 @@ function handle_remote_track(event) {
   document.getElementById('remoteVideo').srcObject = event.streams[0];
 }
 
-// ==========================================================================
-// 7. Functions to establish and use the DataChannel
-// ==========================================================================
-
-// --------------------------------------------------------------------------
-// Create a data channel: only used by the Caller.
-function create_datachannel(peerConnection) {
-  console.log('Creating dataChannel. I am the Caller.');
-
-  //create a dataChannel on the peerConnection
-  dataChannel = peerConnection.createDataChannel("dataChannel");
-
-  //connect the handlers onopen and onmessage to the handlers below
-  // Event onopen --> function handle_datachannel_open
-  dataChannel.onopen = event => handle_datachannel_open(event);
-
-  // Event onmessage --> function handle_datachannel_message
-  dataChannel.onmessage = event => handle_datachannel_message(event);
-}
-
-// --------------------------------------------------------------------------
-// Handle remote data channel from Caller: only used by the Callee.
-function handle_remote_datachannel(event) {
-  console.log('Received remote dataChannel. I am Callee.');
-
-  //get the data channel from the event
-  dataChannel = event.channel;
-
-  //add event handlers for onopen and onmessage events to the dataChannel
-  // Event onopen --> function handle_datachannel_open
-  dataChannel.onopen = event => handle_datachannel_open(event);
-
-  // Event onmessage --> function handle_datachannel_message
-  dataChannel.onmessage = event => handle_datachannel_message(event);
-
-}
-
-// --------------------------------------------------------------------------
-// Handle Open event on dataChannel: show a message.
-// Received by the Caller and the Callee.
-function handle_datachannel_open(event) {
-  dataChannel.send('*** Channel is ready ***');
-}
-
-// --------------------------------------------------------------------------
-// Send message to peer when Send button is clicked
-function sendMessage() {
-  var message = document.getElementById('dataChannelInput').value;
-  document.getElementById('dataChannelInput').value = '';
-  document.getElementById('dataChannelOutput').value += '        ME: ' + message + '\n';
-
-  //send the message through the dataChannel
-  dataChannel.send(message);
-
-}
-
-// Handle Message from peer event on dataChannel: display the message
-function handle_datachannel_message(event) {
-  document.getElementById('dataChannelOutput').value += 'PEER: ' + event.data + '\n';
-}
 
 // ==========================================================================
 // 8. Functions to end call
@@ -342,13 +276,6 @@ function hangUp() {
     peerConnection = null;
   }
 
-  //close the dataChannel and set it to null
-  if(dataChannel) {
-    dataChannel.close();
-    dataChannel = null;
-  }
-
-  document.getElementById('dataChannelOutput').value += '*** Channel is closed ***\n';
 }
 
 // --------------------------------------------------------------------------

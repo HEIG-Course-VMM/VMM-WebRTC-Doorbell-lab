@@ -70,7 +70,8 @@ def handle_p2pmessage(msg_type, content):
     
     #Broadcast the message to existing client in the SocketIO room.
     # Exclude the sender of the orignal message.
-    emit(msg_type, content, room=room_name, broadcast=True, include_self=False)
+    if content:
+        emit(msg_type, content, room=room_name, broadcast=True, include_self=False)
 
 
 #Create a message handler for 'invite' messages
@@ -107,5 +108,4 @@ def handle_bye(room_name):
 # ===========================================================================
 # Run server
 if __name__ == '__main__':
-    #socketio.run(app, "0.0.0.0", 443, ssl_context=('cert.pem', 'key.pem'))
     socketio.run(app, "0.0.0.0", 443, certfile='cert.pem', keyfile='key.pem')
