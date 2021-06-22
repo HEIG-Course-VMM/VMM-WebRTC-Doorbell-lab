@@ -30,15 +30,12 @@ CHATID = os.getenv('CHATID')
 bot = telegram.Bot(token=TOKEN)
 
 # asyncio
-sio = socketio.AsyncClient(ssl_verify=False,logger=True, engineio_logger=True)
+sio = socketio.AsyncClient(ssl_verify=False,logger=False, engineio_logger=False)
+sio_messages = ["created", "joined", "full", "new_peer", "ok", "bye"]
 
 #peerConnection
 ice_server = RTCIceServer(urls='stun:stun.l.google.com:19302')
-pc = RTCPeerConnection(configuration=RTCConfiguration(iceServers=[ice_server]))
-
-sio_messages = ["created", "joined", "full", "new_peer", "ok", "bye"]
 pc_messages = ["track"]
-stopRecorder = False
 
 def blink_led(times):
     for _ in range(times):
@@ -48,6 +45,7 @@ def blink_led(times):
         sleep(0.3)
 
 async def cleanup_restart(room_name):
+    print("Restarting...")
     if LED:
         blink_led(3)
     await sio.emit('bye', room_name)
@@ -61,30 +59,12 @@ def receiver_queue(signaling, messages):
         signaling.on(signal, lambda content='', signal=signal: queue.put_nowait((signal, content)))
     return queue
 
-async def run2():
-    @pc.on("track")
-    def on_track(track):
-        print("Receiving %s" % track.kind)
-        pc_queue.put_nowait(('track', track))
-
-    pc_queue = asyncio.Queue()
-    recorder = MediaRecorder("default", format="alsa")
-    track = await pc_queue.get()
-    recorder.addTrack(track[1])
-    await recorder.start()
-
-    #while not stopRecorder:
-        
-    
-    #await recorder.stop()
-
 async def run():
     while True:
-        stopRecorder = False
         queue = receiver_queue(sio, sio_messages)
-        pc_queue = receiver_queue(pc, pc_messages)
+
         #1. Wait until pushbutton press event.
-        print('press button...')
+        print('Press button...')
         GPIO.wait_for_edge(10, GPIO.RISING)
 
         #2. Connect to the signaling server.
@@ -98,41 +78,39 @@ async def run():
             
         await sio.emit('join', room_name)
 
-
         #4. Wait for response. If response is 'joined' or 'full', stop processing and return to the loop. Go on if response is 'created'.
         answer = await queue.get()
         if answer[0] == 'full' or answer[0] == 'joined':
-            print('room already exists')
+            print('Room already exists')
             await cleanup_restart(room_name)
             continue
         
-        print('room created')
-        #5. Send a message (SMS, Telegram, email, ...) to the user with the room name. Or simply start by printing it on the terminal.
+        #5. Send a Telegram message to the user with the room name. Or simply start by printing it on the terminal.
         message = "Someone just rang your doorbell! Go check who it is at " + SERV_URL + " in the room " + room_name
         print(message)
-        #bot.sendMessage(CHATID, message)
+        bot.sendMessage(CHATID, message)
+
         #6. Wait (with timeout) for a 'new_peer' message. If timeout, send 'bye' to signaling server and return to the loop.
-        
         try:
             answer = await asyncio.wait_for(queue.get(), timeout=TIMEOUT)
             if answer[0] != 'new_peer':
                 raise Exception
         except (asyncio.TimeoutError, Exception):
-                print('peer failed to connect on time')
+                print('Peer failed to connect on time')
                 await cleanup_restart(room_name)
                 continue
 
         #8. Acquire the media stream from the Webcam.
         video_player = MediaPlayer('/dev/video0', format='v4l2', options={
-            'video_size': '320x240'
+            'video_size': '160x120'
         })
         audio_player = MediaPlayer("default", format="pulse")
 
         #9. Create the PeerConnection and add the streams from the local Webcam.
-        #ice_server = RTCIceServer(urls='stun:stun.l.google.com:19302')
-        #pc = RTCPeerConnection(configuration=RTCConfiguration(iceServers=[ice_server]))
+        pc = RTCPeerConnection(configuration=RTCConfiguration(iceServers=[ice_server]))
         pc.addTrack(video_player.video)
         pc.addTrack(audio_player.audio)
+        pc_queue = receiver_queue(pc, pc_messages)
 
         #10. Generate the local session description (offer) and send it as 'invite' to the signaling server.
         offer = await pc.createOffer()
@@ -145,20 +123,27 @@ async def run():
         await sio.emit('invite', sdp_offer)
 
         #11. Add the SDP from the 'ok' to the peer connection.
-        answer = await queue.get()
-        if answer[0] != 'ok':
-            print("peer didn't send SDP answer")
-            cleanup_restart(room_name)
+        try:
+            answer = await asyncio.wait_for(queue.get(), timeout=TIMEOUT)
+            if answer[0] != 'ok':
+                raise Exception
+        except (asyncio.TimeoutError, Exception):
+                print("peer didn't send SDP answer")
+                await cleanup_restart(room_name)
+                continue
 
         sdp_answer = RTCSessionDescription(answer[1]['sdp'], answer[1]['type'])
         await pc.setRemoteDescription(sdp_answer)
 
-        #pc_queue = receiver_queue(pc, pc_messages)
-        track = await pc_queue.get()
-        recorder = MediaRecorder("default", format="alsa")
-        recorder.addTrack(track[1])
-        await recorder.start()
-        
+        #12. Get the media from the browser and play it on the RPI
+        try:
+            track = await asyncio.wait_for(pc_queue.get(), timeout=TIMEOUT)
+            if track[0] == "track":
+                recorder = MediaRecorder("default", format="alsa")
+                recorder.addTrack(track[1])
+                await recorder.start()
+        except asyncio.TimeoutError:
+            pass
 
         #12. Wait (with timeout) for a 'bye' message.
         try:
@@ -166,7 +151,7 @@ async def run():
             if answer[0] != 'bye':
                 raise Exception
         except (asyncio.TimeoutError, Exception):
-                print('no bye received')
+                print('No bye received from browser, closing connection...')
 
         #13. Send a 'bye' message back and clean everything up (peerconnection, media, signaling).
         await pc.close()
