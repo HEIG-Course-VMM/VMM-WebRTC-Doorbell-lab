@@ -22,7 +22,19 @@ async function call() {
     // Then start signaling to join a room
     socket = create_signaling_connection();
     add_signaling_handlers(socket);
-    call_room(socket);
+
+    params = new URLSearchParams(window.location.search)   
+    
+    if(params.has("room")){
+	room = params.get("room")
+	
+    }
+    else{
+	room = prompt('Enter room name:');
+    }
+
+    call_room(socket, room);
+    
     // Create peerConneciton and add handlers
     peerConnection = create_peerconnection(localStream);
     add_peerconnection_handlers(peerConnection);
@@ -128,16 +140,7 @@ function add_signaling_handlers(socket) {
 
 // --------------------------------------------------------------------------
 // Prompt user for room name then send a "join" event to server
-function call_room(socket) {
-    params = URLSearchParams(window.location.search)
-    
-    if(params.has("room")){
-	room = params.get("room")
-    }
-    else{
-	room = prompt('Enter room name:');
-    }    
-    
+function call_room(socket, room) {
     if (room != '') {
 	console.log('Joining room: ' + room);
 	socket.emit('join', room);

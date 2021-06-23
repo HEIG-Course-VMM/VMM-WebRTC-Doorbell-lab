@@ -58,7 +58,7 @@ async def main():
         
         if responseMessage == "full" or responseMessage == "joined":
             continue
-        else if responseMessage != "created":
+        elif responseMessage != "created":
             print("Room not created")
             continue
         
