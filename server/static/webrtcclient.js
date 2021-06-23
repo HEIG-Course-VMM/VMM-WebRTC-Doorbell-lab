@@ -8,29 +8,31 @@ var dataChannel; // WebRTC DataChannel
 var room; // Room name: Caller and Callee have to join the same 'room'.
 var socket; // Socket.io connection to the Web server for signaling.
 
+await checkURL(); //check url if autostart is needed
+
 // ==========================================================================
 // 1. Make call
 // ==========================================================================
 
-params = new URLSearchParams(window.location.search)   
+async function checkURL(){
+    params = new URLSearchParams(window.location.search);   
 
-if(params.has("room")){
-    room = params.get("room")
-    call (room)
+    if(params.has("room")){
+	room = params.get("room");
+	await call(room);
+    }
 }
 
 // --------------------------------------------------------------------------
 // Function call, when call button is clicked.
-async function call(room = null)
+async function call(room = null){
     // Enable local video stream from camera or screen sharing
     var localStream = await enable_camera();
 
     // Create Socket.io connection for signaling and add handlers
     // Then start signaling to join a room
     socket = create_signaling_connection();
-    add_signaling_handlers(socket);
-    
-    call_room(socket, room);
+    add_signaling_handlers(socket);call_room(socket, room);
     
     // Create peerConneciton and add handlers
     peerConnection = create_peerconnection(localStream);
