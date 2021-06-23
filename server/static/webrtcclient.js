@@ -15,10 +15,10 @@ checkURL(); //check url if autostart is needed
 // ==========================================================================
 
 async function checkURL(){
-    params = new URLSearchParams(window.location.search);   
+    var parameters = new URLSearchParams(window.location.search);   
 
-    if(params.has("room")){
-	room = params.get("room");
+    if(parameters.has("room")){
+	room = parameters.get("room");
 	await call(room);
     }
 }
