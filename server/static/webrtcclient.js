@@ -227,7 +227,10 @@ async function handle_joined(data) {
 // Send it to the peer via the server.
 async function handle_local_icecandidate(event) {
     console.log('Received local ICE candidate: ', event);
-    if (event.candidate === null) {
+    if (event.candidate) {
+	console.log('nothing to do');
+    }
+    else{
 	socket.emit('invite', peerConnection.localDescription);
 	console.log("Invite sent: ", peerConnection.localDescription);
     }
