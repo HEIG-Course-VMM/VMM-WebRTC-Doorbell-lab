@@ -9,7 +9,7 @@ from aiortc import RTCPeerConnection,RTCSessionDescription
 # GLOBAL VARIABLES
 #*****************************
 SERVER_URL = "https://192.168.1.115:443"
-ROOM_NAME_SIZE = 8
+ROOM_NAME_SIZE = 4
 TIMEOUT=30
 VIDEO_SIZE = "320x240"
 
@@ -77,23 +77,28 @@ async def main():
             if responseMessage == "invite":
                 print("invite")
                 #Acquire the media stream from the Webcam.
-                videoPlayer = MediaPlayer("/dev/video0", format="v4l2", options={"video_size": VIDEO_SIZE})
+                videoPlayer = MediaPlayer("/dev/video0", format="v4l2", options={"video_size": "320x240"})
                 audioPlayer = MediaPlayer("default", format="pulse")
                 
                 #Create the PeerConnection and add the streams from the local Webcam.
+                print("Creating peerConnection...")
                 peerConnection = RTCPeerConnection()
-                peerConnection.addTrack(videoPlayer)
-                peerConnection.addTrack(audioPlayer)
+                peerConnection.addTrack(videoPlayer.video)
+                peerConnection.addTrack(audioPlayer.audio)
+
+                print("Tracking added")
                 
                 #Add the SDP from the 'invite' to the peer connection.
                 offer = response[1]
                 sdp = RTCSessionDescription(offer['sdp'], offer['type'])
-                await pc.setRemoteDescription(sdp)
-
+                await peerConnection.setRemoteDescription(sdp)
+                
                 #Generate the local session description (answer) and send it as 'ok' to the signaling server.
                 answer = await peerConnection.createAnswer()
-                peerConnection.setLocalDescription(answer)
+                await peerConnection.setLocalDescription(answer)
+                answer = peerConnection.localDescription
                 await sio.emit("ok", answer)
+                print("ok")
         except asyncio.TimeoutError:
             print("Timeout 'invite' after " + str(TIMEOUT) + " s")
             await sio.emit("bye", roomName)
