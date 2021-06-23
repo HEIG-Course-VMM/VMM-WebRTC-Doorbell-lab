@@ -2,8 +2,13 @@ import socketio
 import random
 import string 
 import asyncio
+import smtplib, ssl
+
 from aiortc.contrib.media import MediaPlayer
 from aiortc import RTCPeerConnection,RTCSessionDescription
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
 
 #*****************************
 # GLOBAL VARIABLES
@@ -12,6 +17,12 @@ SERVER_URL = "https://192.168.1.115:443"
 ROOM_NAME_SIZE = 4
 TIMEOUT=30
 VIDEO_SIZE = "320x240"
+
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 465
+EMAIL_FROM = "cld.heig.lle@gmail.com"
+EMAIL_TO = "cld.heig.lle@gmail.com"
+PASSWORD = ""
 
 #*****************************
 # FUNCTIONS
@@ -25,12 +36,27 @@ def receiver_queue(signaling, messages):
         signaling.on(signal, lambda content, signal=signal: queue.put_nowait((signal, content)))
     return queue
 
-async def bye():
+async def bye(sio):
     await sio.emit("bye")
     del videoPlayer
     del audioPlayer
     del peerConnection    
 
+def sendEmail(link):
+    message = MIMEMultipart("alternative")
+    message["Subject"] = "Doorbell"
+    message["From"] = EMAIL_FROM
+    message["To"] = EMAIL_TO
+
+    html="Someone used the doorbell : <a href='"+link+"'>Click here to open</a>"
+    part=MIMEText(html, "html")
+    message.attach(part)
+    
+    with smtplib.SMTP_SSL(SMTP_SERVER, 465) as srv:
+        srv.ehlo()
+        srv.login(EMAIL_FROM, PASSWORD)
+        srv.sendmail(EMAIL_FROM,EMAIL_TO, message.as_string())
+    
 async def main():
     while True:
         sio = socketio.AsyncClient(ssl_verify=False)
@@ -63,8 +89,11 @@ async def main():
             continue
         
         #Send a message (SMS, Telegram, email, ...) to the user with the room name. Or simply start by printing it on the terminal. 
-        print("Dring dring : " + SERVER_URL + "?room=" + roomName)
+        link = SERVER_URL + "?room=" + roomName
+        print("Dring dring : " + link)
 
+        sendEmail(link)
+        
         videoPlayer = None
         audioPlayer = None
         peerConnection = None
@@ -77,7 +106,7 @@ async def main():
                 print("new_peer")
         except asyncio.TimeoutError:
             print("Timeout 'new_peer' after " + str(TIMEOUT) + " s")
-            await bye()
+            await bye(sio)
             
         #Wait (with timeout) for an 'invite' message. If timemout, send 'bye to signaling server and return to the loop.  
         try:
@@ -112,7 +141,7 @@ async def main():
                 print("ok")
         except asyncio.TimeoutError:
             print("Timeout 'invite' after " + str(TIMEOUT) + " s")
-            await bye()
+            await bye(sio)
             continue
         
         #Wait (with timeout) for a 'bye' message.
@@ -121,7 +150,7 @@ async def main():
             responseMessage = response[0]
             if responseMessage == "bye":
                 #Send a 'bye' message back and clean everything up (peerconnection, media, signaling).
-                await bye()
+                await bye(sio)
         except asyncio.TimeoutError:
             print("Timeout bye " + str(TIMEOUT) + " s")
             await sio.emit("bye", roomName)                
