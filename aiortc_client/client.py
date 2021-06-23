@@ -25,7 +25,7 @@ def receiver_queue(signaling, messages):
         signaling.on(signal, lambda content, signal=signal: queue.put_nowait((signal, content)))
     return queue
 
-def bye():
+async def bye():
     await sio.emit("bye")
     del videoPlayer
     del audioPlayer
@@ -39,9 +39,9 @@ async def main():
         
         #Wait until keypress (to be replaced later by the pushbutton press event)
         input("Press enter to continue")
-        print("Connecting...")
         
         #Connect to the signaling server.
+        print("Connecting...")
         await sio.connect(SERVER_URL)
         print("Connected")
         
@@ -58,9 +58,12 @@ async def main():
         
         if responseMessage == "full" or responseMessage == "joined":
             continue
+        else if responseMessage != "created":
+            print("Room not created")
+            continue
         
         #Send a message (SMS, Telegram, email, ...) to the user with the room name. Or simply start by printing it on the terminal. 
-        print("Dring dring : " + SERVER_URL + "?id=" + roomName)
+        print("Dring dring : " + SERVER_URL + "?room=" + roomName)
 
         videoPlayer = None
         audioPlayer = None
@@ -74,7 +77,7 @@ async def main():
                 print("new_peer")
         except asyncio.TimeoutError:
             print("Timeout 'new_peer' after " + str(TIMEOUT) + " s")
-            await sio.emit("bye", roomName)
+            await bye()
             
         #Wait (with timeout) for an 'invite' message. If timemout, send 'bye to signaling server and return to the loop.  
         try:
@@ -101,13 +104,15 @@ async def main():
                 
                 #Generate the local session description (answer) and send it as 'ok' to the signaling server.
                 answer = await peerConnection.createAnswer()
+                print(answer)
                 await peerConnection.setLocalDescription(answer)
                 answer = peerConnection.localDescription
+                
                 await sio.emit("ok", answer)
                 print("ok")
         except asyncio.TimeoutError:
             print("Timeout 'invite' after " + str(TIMEOUT) + " s")
-            await sio.emit("bye", roomName)
+            await bye()
             continue
         
         #Wait (with timeout) for a 'bye' message.
@@ -116,7 +121,7 @@ async def main():
             responseMessage = response[0]
             if responseMessage == "bye":
                 #Send a 'bye' message back and clean everything up (peerconnection, media, signaling).
-                bye()
+                await bye()
         except asyncio.TimeoutError:
             print("Timeout bye " + str(TIMEOUT) + " s")
             await sio.emit("bye", roomName)                

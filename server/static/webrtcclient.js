@@ -129,7 +129,15 @@ function add_signaling_handlers(socket) {
 // --------------------------------------------------------------------------
 // Prompt user for room name then send a "join" event to server
 function call_room(socket) {
-    room = prompt('Enter room name:');
+    params = URLSearchParams(window.location.search)
+    
+    if(params.has("room")){
+	room = params.get("room")
+    }
+    else{
+	room = prompt('Enter room name:');
+    }    
+    
     if (room != '') {
 	console.log('Joining room: ' + room);
 	socket.emit('join', room);
