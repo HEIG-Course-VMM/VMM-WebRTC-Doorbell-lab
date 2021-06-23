@@ -8,7 +8,7 @@ var dataChannel; // WebRTC DataChannel
 var room; // Room name: Caller and Callee have to join the same 'room'.
 var socket; // Socket.io connection to the Web server for signaling.
 
-await checkURL(); //check url if autostart is needed
+checkURL(); //check url if autostart is needed
 
 // ==========================================================================
 // 1. Make call
