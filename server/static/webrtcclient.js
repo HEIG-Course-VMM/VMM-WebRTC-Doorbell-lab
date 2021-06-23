@@ -12,9 +12,16 @@ var socket; // Socket.io connection to the Web server for signaling.
 // 1. Make call
 // ==========================================================================
 
+params = new URLSearchParams(window.location.search)   
+
+if(params.has("room")){
+    room = params.get("room")
+    call (room)
+}
+
 // --------------------------------------------------------------------------
 // Function call, when call button is clicked.
-async function call() {
+async function call(room = null)
     // Enable local video stream from camera or screen sharing
     var localStream = await enable_camera();
 
@@ -22,17 +29,7 @@ async function call() {
     // Then start signaling to join a room
     socket = create_signaling_connection();
     add_signaling_handlers(socket);
-
-    params = new URLSearchParams(window.location.search)   
     
-    if(params.has("room")){
-	room = params.get("room")
-	
-    }
-    else{
-	room = prompt('Enter room name:');
-    }
-
     call_room(socket, room);
     
     // Create peerConneciton and add handlers
@@ -141,6 +138,10 @@ function add_signaling_handlers(socket) {
 // --------------------------------------------------------------------------
 // Prompt user for room name then send a "join" event to server
 function call_room(socket, room) {
+    if(room == null){
+	room = prompt('Enter room name:');
+    }
+    
     if (room != '') {
 	console.log('Joining room: ' + room);
 	socket.emit('join', room);
