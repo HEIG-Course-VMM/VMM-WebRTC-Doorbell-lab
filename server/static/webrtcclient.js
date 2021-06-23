@@ -231,6 +231,7 @@ async function handle_local_icecandidate(event) {
 	console.log('nothing to do');
     }
     else{
+	console.log("candidate null : "+event.candidate);
 	socket.emit('invite', peerConnection.localDescription);
 	console.log("Invite sent: ", peerConnection.localDescription);
     }
