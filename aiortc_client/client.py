@@ -25,6 +25,12 @@ def receiver_queue(signaling, messages):
         signaling.on(signal, lambda content, signal=signal: queue.put_nowait((signal, content)))
     return queue
 
+def bye():
+    await sio.emit("bye")
+    del videoPlayer
+    del audioPlayer
+    del peerConnection    
+
 async def main():
     while True:
         sio = socketio.AsyncClient(ssl_verify=False)
@@ -85,12 +91,12 @@ async def main():
                 peerConnection = RTCPeerConnection()
                 peerConnection.addTrack(videoPlayer.video)
                 peerConnection.addTrack(audioPlayer.audio)
-
+                
                 print("Tracking added")
                 
                 #Add the SDP from the 'invite' to the peer connection.
                 offer = response[1]
-                sdp = RTCSessionDescription(offer['sdp'], offer['type'])
+                sdp = RTCSessionDescription(sdp = offer['sdp'], type=offer['type'])
                 await peerConnection.setRemoteDescription(sdp)
                 
                 #Generate the local session description (answer) and send it as 'ok' to the signaling server.
@@ -109,12 +115,8 @@ async def main():
             response = await asyncio.wait_for(messagesQueue.get(), timeout=TIMEOUT*3)
             responseMessage = response[0]
             if responseMessage == "bye":
-                print("bye")
                 #Send a 'bye' message back and clean everything up (peerconnection, media, signaling).
-                await sio.emit("bye")
-                del videoPlayer
-                del audioPlayer
-                del peerConnection
+                bye()
         except asyncio.TimeoutError:
             print("Timeout bye " + str(TIMEOUT) + " s")
             await sio.emit("bye", roomName)                
