@@ -18,7 +18,10 @@ async function call() {
   // Enable local video stream from micro or screen sharing
   var localStream = await enable_micro();
   
+  // get room name from argument
   
+
+
   // Create Socket.io connection for signaling and add handlers
   // Then start signaling to join a room
   socket = create_signaling_connection();
@@ -49,7 +52,7 @@ async function enable_micro() {
   } catch (error) {
     console.error('Error accessing media devices.', error);
     // If this fails, use getDisplayMedia to get a screen sharing stream.
-    stream = await navigator.mediaDevices.getDisplayMedia(constraints);
+    // stream = await navigator.mediaDevices.getDisplayMedia(constraints);
   }
 
   document.getElementById('localVideo').srcObject = stream;
@@ -115,11 +118,24 @@ function add_signaling_handlers(socket) {
   });
 
 }
+// --------------------------------------------------------------------------
+// get room name from url parameter
+function get_room_name_from_url() {
+  let params = new URLSearchParams(document.location.search.substring(1));
+  let room_name = params.get("room");
+
+  return room_name
+}
+
 
 // --------------------------------------------------------------------------
 // Prompt user for room name then send a "join" event to server
 function call_room(socket) {
-  room = prompt('Enter room name:');
+
+  room = get_room_name_from_url()
+  if (room == null) {
+    room = prompt('Enter room name:');
+  }  
   if (room != '') {
       console.log('Joining room: ' + room);
       socket.emit('join',room);
@@ -192,11 +208,16 @@ async function handle_invite(offer) {
 async function handle_ok(answer) {
   console.log('Received OK answer from Callee: ', answer);
 
-  await peerConnection.setRemoteDescription(answer);
+  // since the answer is sent by aiortc we need to reinstantiate the object
+
+  await peerConnection.setRemoteDescription(JSON.parse(answer));
 }
 
 async function handle_joined() {
   console.log("Received Joined message")
+
+  peerConnection.addTransceiver('video', {direction: 'recvonly'});
+  
   let offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
   console.log("Create offer and setlocaledescription done!");
