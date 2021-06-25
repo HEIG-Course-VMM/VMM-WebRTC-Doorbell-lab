@@ -4,6 +4,9 @@ import ssl
 import secrets
 
 import socketio
+import pprint
+
+import env
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer, MediaRelay
@@ -38,10 +41,10 @@ def receiver_queue(signaling, messages):
         signaling.on(signal, lambda content, signal=signal: queue.put_nowait((signal, content)))
     return queue
 
-async def main():
+async def main(server):
     input("Press Enter to continue...")
 
-    await sio.connect('https://localhost:443')
+    await sio.connect(server)
     print("connected to my server")
     print("sending test message")
 
@@ -69,24 +72,43 @@ async def main():
         if message[0] == "invite" : 
             print("received an invite")
 
-            remoteOffer = message[1]
+            remoteOffer = RTCSessionDescription(sdp=message[1]['sdp'],type=message[1]['type']) 
             pc = RTCPeerConnection()
             
+            await pc.setRemoteDescription(remoteOffer)
+            print("remote description set")
+            
             # Aquire the media device
-
             video_player = MediaPlayer('/dev/video0', format='v4l2', options=options_video)
             audio_player = MediaPlayer("default", format="pulse")  
+            print("Media aquired")
 
-            pc.addTrack(video_player)
-            pc.addTrack(audio_player)
+            for t in pc.getTransceivers():
+                print(t.kind)
+                if t.kind == "audio" and video_player.video:
+                    pc.addTrack(video_player.video)
+                if t.kind == "video" and audio_player.audio:
+                    pc.addTrack(audio_player.audio)
 
-            pc.setRemoteDescription(remoteOffer)
+            print("track added")
+
+            print("generating answer...")
             answer = await pc.createAnswer()
 
-            pc.setLocalDescription(answer)
-            answer = pc.localDescription
+            print("generated answer")
 
-            await sio.emit("ok",answer)
+            await pc.setLocalDescription(answer)
+
+            answer = pc.localDescription
+            print(answer)
+
+            answer_json = json.dumps({
+                "sdp":answer.sdp,
+                "type":answer.type
+            })
+
+            await sio.emit("ok",answer_json)
+        
         
         if message[0] == "bye" :
             print("End of the call")
@@ -94,4 +116,5 @@ async def main():
             
 
 if __name__ == "__main__" :
-    asyncio.run(main())
+    server = env.HOST +":"+ str(env.PORT)
+    asyncio.run(main(server))
