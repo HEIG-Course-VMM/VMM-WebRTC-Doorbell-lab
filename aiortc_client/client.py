@@ -6,33 +6,17 @@ import secrets
 import socketio
 import pprint
 
-import env
-
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer, MediaRelay
 
-
-# Loop forever:
-#   1. Wait until keypress (to be replaced later by the pushbutton press event).
-#   2. Connect to the signaling server.
-#   3. Join a conference room with a random name (send 'join' signal with room name).
-#   4. Wait for response. If response is 'joined' or 'full', stop processing and return to the loop. Go on if response is 'created'.
-#   5. Send a message (SMS, Telegram, email, ...) to the user with the room name. Or simply start by printing it on the terminal. 
-#   6. Wait (with timeout) for a 'new_peer' message. If timeout, send 'bye' to signaling server and return to the loop. 
-#   7. Wait (with timeout) for an 'invite' message. If timemout, send 'bye to signaling server and return to the loop. 
-#   8. Acquire the media stream from the Webcam.
-#   9. Create the PeerConnection and add the streams from the local Webcam.
-#   10. Add the SDP from the 'invite' to the peer connection.
-#   11. Generate the local session description (answer) and send it as 'ok' to the signaling server.
-#   12. Wait (with timeout) for a 'bye' message. 
-#   13. Send a 'bye' message back and clean everything up (peerconnection, media, signaling).
-
-
-options_video = {"framerate": "30", "video_size": "320x240"}
+options_video = {"framerate": "30", "video_size": "640x480"}
 
 sio = socketio.AsyncClient(ssl_verify=False)
 
 MAX_RND = 512
+
+HOST = 'https://192.168.1.108'
+PORT = 443
 
 # Reception des messages asynchrones
 def receiver_queue(signaling, messages):
@@ -62,6 +46,7 @@ async def main(server):
         
         if message[0] == "created" :
             print(f"room {message[1]} has been created")
+            print(f"Browse your navigator to {server}?room={message[1]} ")
 
         if message[0] in ("full", "joined") : 
             print("error : room already exist")
@@ -115,15 +100,13 @@ async def main(server):
             await sio.emit("bye")
             
             # Cleanup
-            pc.close()
+            await pc.close()
             video_player = None
             video_player = None
-            
+            break 
             
 
 if __name__ == "__main__" :
-    server = env.HOST + ":" + str(env.PORT)
-    try :
-        asyncio.run(main(server))
-    except KeyboardInterrupt :
-        pc.close()
+    server = HOST + ":" + str(PORT)
+    
+    asyncio.run(main(server))
