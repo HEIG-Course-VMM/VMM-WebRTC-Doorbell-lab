@@ -55,7 +55,7 @@ async function enable_micro() {
     // stream = await navigator.mediaDevices.getDisplayMedia(constraints);
   }
 
-  document.getElementById('localVideo').srcObject = stream;
+  // document.getElementById('localVideo').srcObject = stream;
   return stream;
 }
 
@@ -323,13 +323,13 @@ function hangUp() {
   socket.emit('bye',room)
 
   // Switch off the local stream by stopping all tracks of the local stream
-  var localVideo = document.getElementById('localVideo')
+  // var localVideo = document.getElementById('localVideo')
   var remoteVideo = document.getElementById('remoteVideo')
 
-  localVideo.srcObject.getTracks().forEach(track => track.stop());
+  // localVideo.srcObject.getTracks().forEach(track => track.stop());
   remoteVideo.srcObject.getTracks().forEach(track => track.stop());
   
-  localVideo = null;
+  // localVideo = null;
   remoteVideo = null;
 
   peerConnection.close();

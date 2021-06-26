@@ -114,7 +114,16 @@ async def main(server):
             print("End of the call")
             await sio.emit("bye")
             
+            # Cleanup
+            pc.close()
+            video_player = None
+            video_player = None
+            
+            
 
 if __name__ == "__main__" :
-    server = env.HOST +":"+ str(env.PORT)
-    asyncio.run(main(server))
+    server = env.HOST + ":" + str(env.PORT)
+    try :
+        asyncio.run(main(server))
+    except KeyboardInterrupt :
+        pc.close()
