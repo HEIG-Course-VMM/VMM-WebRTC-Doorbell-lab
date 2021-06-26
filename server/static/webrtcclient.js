@@ -335,10 +335,10 @@ function hangUp() {
   peerConnection.close();
   peerConnection = null;
   
-  dataChannel.close();
-  dataChannel = null;
+  // dataChannel.close();
+  // dataChannel = null;
 
-  document.getElementById('dataChannelOutput').value += '*** Channel is closed ***\n';
+  // document.getElementById('dataChannelOutput').value += '*** Channel is closed ***\n';
 }
 
 // --------------------------------------------------------------------------
