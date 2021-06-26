@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.5/build/pure-min.css">
 </head>
 
-<body style="background-color:#fefefe">
+<body style="background-color:#fefefe" onload="call()">
     <div id='mainDiv' align="center">
         <h1>What is going on near the PI</h1>
         <div id='callButtons' align="center">
@@ -14,7 +14,7 @@
             <button class="pure-button" id="hangupButton" onclick="hangUp()">Hang up</button>
         </div>
         <!-- <h3>Streams and data channels</h3> -->
-        <table class="pure-table pure-table" width="90%">
+        <table class="pure-table" width="70%">
             <thead>
                 <tr>
                     <!-- <th>Local video</th> -->
@@ -24,7 +24,7 @@
             <tbody>
                 <tr>
                     <!-- <td width="50%"> <video id="localVideo" autoplay playsinline width="100%"></video> </td> -->
-                    <td width="50%"> <video id="remoteVideo" autoplay playsinline width="100%"></video> </td>
+                    <td width="100%"> <video id="remoteVideo" autoplay playsinline width="50%"></video> </td>
                 </tr>
             </tbody>
         </table>
