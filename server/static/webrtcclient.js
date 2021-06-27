@@ -47,7 +47,6 @@ async function call(room = null){
 // Then show it on localVideo.
 async function enable_camera() {
 
-    // *** TODO ***: define constraints: set video to true, audio to false
     const constraints = {
 	'video': true,
 	'audio': true
@@ -55,12 +54,9 @@ async function enable_camera() {
 
     console.log('Getting user media with constraints', constraints);
 
-    const openMediaDevices = async (constraints) => {
-	return await navigator.mediaDevices.getUserMedia(constraints);
-    }
+    const openMediaDevices = await navigator.mediaDevices.getUserMedia(constraints);
 
-    const openMediaSharing = async (constraints) => {
-	return await navigator.mediaDevices.getDisplayMedia(constraints);
+    const openMediaSharing = await navigator.mediaDevices.getDisplayMedia(constraints);
     }
 
     var stream;
@@ -172,19 +168,14 @@ function create_peerconnection(localStream) {
 // This function is called by the call function all on top of the file.
 function add_peerconnection_handlers(peerConnection) {
     // onicecandidate -> handle_local_icecandidate
-    peerConnection.onicecandidate = function(event) {
-	handle_local_icecandidate(event);
-    }
+    peerConnection.onicecandidate = handle_local_icecandidate;
 
     // ontrack -> handle_remote_track
-    peerConnection.ontrack = function(event) {
-	handle_remote_track(event);
-    }
+    peerConnection.ontrack = handle_remote_track;
 
     // ondatachannel -> handle_remote_datachannel
-    peerConnection.ondatachannel = function(event) {
-	handle_remote_datachannel(event);
-    }
+    peerConnection.ondatachannel = handle_remote_datachannel;
+    
 }
 
 // ==========================================================================
@@ -277,13 +268,9 @@ function create_datachannel(peerConnection) {
 
     dataChannel = peerConnection.createDataChannel("chat");
 
-    dataChannel.onopen = function(event) {
-	handle_datachannel_open(event);
-    }
+    dataChannel.onopen = handle_datachannel_open;
 
-    dataChannel.onmessage = function(event) {
-	handle_datachannel_message(event);
-    }
+    dataChannel.onmessage = handle_datachannel_message;
 }
 
 // --------------------------------------------------------------------------
@@ -293,13 +280,9 @@ function handle_remote_datachannel(event) {
 
     dataChannel = event.channel;
 
-    dataChannel.onopen = function(event) {
-	handle_datachannel_open(event);
-    }
+    dataChannel.onopen = handle_datachannel_open;
 
-    dataChannel.onmessage = function(event) {
-	handle_datachannel_message(event);
-    }
+    dataChannel.onmessage = handle_datachannel_message;
 }
 
 // --------------------------------------------------------------------------
