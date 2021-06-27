@@ -54,15 +54,10 @@ async function enable_camera() {
 
     console.log('Getting user media with constraints', constraints);
 
-    const openMediaDevices = await navigator.mediaDevices.getUserMedia(constraints);
-
-    const openMediaSharing = await navigator.mediaDevices.getDisplayMedia(constraints);
-    }
-
     var stream;
 
     try {
-	stream = await openMediaDevices(constraints);
+	stream = await navigator.mediaDevices.getUserMedia(constraints);
 	console.log('Got video stream:', stream);
 
     } catch(error) {
@@ -70,7 +65,7 @@ async function enable_camera() {
 	console.error('Trying screen sharing', error);
 
 	try {
-            stream = await openMediaSharing(constraints);
+            stream = await navigator.mediaDevices.getDisplayMedia(constraints);
             console.log('Got sharing stream:', stream);
 	} catch(error) {
             console.error('Error accessing screen sharing', error);
