@@ -14,6 +14,7 @@ checkURL(); //check url if autostart is needed
 // 1. Make call
 // ==========================================================================
 
+//call room if it is in the URL
 async function checkURL(){
     var parameters = new URLSearchParams(window.location.search);   
 
@@ -32,7 +33,8 @@ async function call(room = null){
     // Create Socket.io connection for signaling and add handlers
     // Then start signaling to join a room
     socket = create_signaling_connection();
-    add_signaling_handlers(socket);call_room(socket, room);
+    add_signaling_handlers(socket);
+    call_room(socket, room);
     
     // Create peerConneciton and add handlers
     peerConnection = create_peerconnection(localStream);
@@ -132,9 +134,7 @@ function add_signaling_handlers(socket) {
 	     );
 
     // bye --> hangUp
-    socket.on('bye', () => 
-	      hangUp()
-	     );
+    socket.on('bye', hangUp);
 }
 
 // --------------------------------------------------------------------------

@@ -56,7 +56,8 @@ def handle_p2pmessage(msg_type, content):
     user_id = request.sid
     room_name = rooms_db.get(user_id)
     print(f"Received {msg_type} message: {content} from user: {user_id} in room {room_name}")
-    emit(msg_type, content, room = room_name, broadcast=True, include_self=False)
+    if room_name:
+        emit(msg_type, content, room = room_name, broadcast=True, include_self=False)
 
 @socketio.on('invite')
 def handle_invite(data):

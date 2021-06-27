@@ -16,13 +16,14 @@ from email.mime.multipart import MIMEMultipart
 SERVER_URL = "https://192.168.1.115:443"
 ROOM_NAME_SIZE = 4
 TIMEOUT=30
+TIMEOUT_BYE = TIMEOUT*3
 VIDEO_SIZE = "320x240"
 
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465
-EMAIL_FROM = "cld.heig.lle@gmail.com"
-EMAIL_TO = "cld.heig.lle@gmail.com"
-PASSWORD = ""
+EMAIL_FROM = "EMAIL@gmail.com"
+EMAIL_TO = "EMAIL@gmail.com"
+PASSWORD = "PASSWORD"
 
 #*****************************
 # FUNCTIONS
@@ -67,20 +68,15 @@ async def main():
         input("Press enter to continue")
         
         #Connect to the signaling server.
-        print("Connecting...")
         await sio.connect(SERVER_URL)
-        print("Connected")
         
         #Join a conference room with a random name (send 'create' signal with room name).
         roomName = getRandomName(ROOM_NAME_SIZE)
         await sio.emit("join", roomName)
-        print("create room : " + roomName)
         
         #Wait for response. If response is 'joined' or 'full', stop processing and return to the loop. Go on if response is 'created'.
         response = await messagesQueue.get()
         responseMessage = response[0]
-        
-        print(responseMessage)
         
         if responseMessage == "full" or responseMessage == "joined":
             continue
@@ -113,18 +109,14 @@ async def main():
             response = await asyncio.wait_for(messagesQueue.get(), timeout=TIMEOUT)
             responseMessage = response[0]
             if responseMessage == "invite":
-                print("invite")
                 #Acquire the media stream from the Webcam.
-                videoPlayer = MediaPlayer("/dev/video0", format="v4l2", options={"video_size": "320x240"})
+                videoPlayer = MediaPlayer("/dev/video0", format="v4l2", options={"video_size": VIDEO_SIZE})
                 audioPlayer = MediaPlayer("default", format="pulse")
                 
                 #Create the PeerConnection and add the streams from the local Webcam.
-                print("Creating peerConnection...")
                 peerConnection = RTCPeerConnection()
                 peerConnection.addTrack(videoPlayer.video)
                 peerConnection.addTrack(audioPlayer.audio)
-                
-                print("Tracking added")
                 
                 #Add the SDP from the 'invite' to the peer connection.
                 offer = response[1]
@@ -138,7 +130,6 @@ async def main():
                 answer = peerConnection.localDescription
                 
                 await sio.emit("ok", answer)
-                print("ok")
         except asyncio.TimeoutError:
             print("Timeout 'invite' after " + str(TIMEOUT) + " s")
             await bye(sio)
@@ -146,13 +137,13 @@ async def main():
         
         #Wait (with timeout) for a 'bye' message.
         try:
-            response = await asyncio.wait_for(messagesQueue.get(), timeout=TIMEOUT*3)
+            response = await asyncio.wait_for(messagesQueue.get(), timeout=TIMEOUT_BYE)
             responseMessage = response[0]
             if responseMessage == "bye":
                 #Send a 'bye' message back and clean everything up (peerconnection, media, signaling).
                 await bye(sio)
         except asyncio.TimeoutError:
-            print("Timeout bye " + str(TIMEOUT) + " s")
+            print("Timeout bye " + str(TIMEOUT_BYE) + " s")
             await sio.emit("bye", roomName)                
             continue
         
