@@ -15,16 +15,15 @@ sio = socketio.AsyncClient(ssl_verify=False)
 
 MAX_RND = 512
 
-HOST = 'https://<Signaling_Server_IP>'
+HOST = "192.168.1.108"
 PORT = 443
 
-BOT_TOKEN = "Your bot token here"
-CHAT_ID = 0# Your Chat ID here
+BOT_TOKEN = "1852845093:AAGfGzdYWOb7xwSSPidHhJZPxOyx6JItiTY" # your bot token here
+CHAT_ID = 628765527# Your Chat ID here
 
 LOG = logger.get_logger()
 
-#tg = bot.Bot(BOT_TOKEN)
-
+tg = bot.Bot(BOT_TOKEN)
 
 # Reception des messages asynchrones
 def receiver_queue(signaling, messages):
@@ -57,7 +56,7 @@ async def main(server):
             url = f"{server}?room={message[1]}"
             LOG.info(f"room {message[1]} has been created")
             LOG.info(f"Browse your navigator to {url}")
-            #tg.send_message(chat_id=CHAT_ID, text="You can see your camera here {url}")
+            tg.send_message(chat_id=CHAT_ID, text=f"You can see your camera here {url}")
 
         if message[0] in ("full", "joined"):
             LOG.info("error : room already exist")
@@ -119,7 +118,7 @@ async def main(server):
 
 
 if __name__ == "__main__":
-    server = HOST + ":" + str(PORT)
+    server = "https://" + HOST + ":" + str(PORT)
 
     LOG.info(f"connecting to {server}")
 
