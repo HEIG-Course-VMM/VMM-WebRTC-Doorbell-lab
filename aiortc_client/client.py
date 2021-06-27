@@ -112,13 +112,13 @@ async def main(server):
         
         if message[0] == "bye" :
             LOG.info("End of the call")
+            await sio.emit("bye")
             
             # Cleanup
             await pc.close()
             video_player = None
             video_player = None
             
-            await sio.emit("bye")
             break 
             
 
