@@ -7,7 +7,7 @@ import logging
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer, MediaRelay
 
-options_video = {"framerate": "30", "video_size": "640x480"}
+options_video = {"framerate": "30", "video_size": "320x240"}
 
 sio = socketio.AsyncClient(ssl_verify=False)
 
@@ -112,14 +112,15 @@ async def main(server):
         
         if message[0] == "bye" :
             LOG.info("End of the call")
-            await sio.emit("bye")
+            await sio.emit("bye",None)
             
             # Cleanup
             await pc.close()
+            pc = None
             video_player = None
             video_player = None
-            
-            break 
+            exit()
+             
             
 
 if __name__ == "__main__" :
