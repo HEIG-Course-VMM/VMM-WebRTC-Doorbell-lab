@@ -25,6 +25,8 @@ The system to develop should work as follows:
 Instructions
 ============
 
+ This section guides the student through the development of the complete solution based on the skeleton. If you hit any problem, check the Troubleshooting section at the end.
+
 Install the Raspberry Pi
 ------------------------
 
@@ -191,3 +193,45 @@ You have to provide the following elements to the professor:
   * show how you structured the code of the RPi client and how you implemented the difficult parts.
 
 All students will vote and the best project will get an additional 0.5 on the grade.
+
+Troubleshooting
+===============
+
+
+### The web page does not load when accessing https://<server_ip>
+
+* Check if you explicitely typed **https**.
+* Check which port the server uses (8443 or another port).
+* Run `tcpdump -i any port 443` on the server to check the TCP connection is established. If not, there's probably a firewall problem.
+
+### The web page loads but SocketIO signaling does not work
+
+The symptoms are that the "Call" button on the server does not work or the server may print an error such as "unexpected message".
+
+The cause may be incomptable version of socketio between the server, the Web client or the aiortc client on the RPi. 
+
+Check the socketio version on the server:
+
+```bash
+$ pip3 list | grep socketio
+python-socketio        4.4.0
+
+$ pip3 list | grep engineio
+python-engineio        3.11.1
+```
+
+Here, the server uses socketio version 4.4.0 and engineio version 3.11.1. 
+
+Do the same on the Raspberry to check the installed versions. They should be identical to the version on the server. Otherwise use `pip3 install python-socketio==<version>` to install the correct version.
+
+Then, again on the server, check the socketio version used by the Web client:
+
+```bash
+$ cat server/static/index.html | grep socket.io
+    <script src="https://cdn.socket.io/socket.io-2.3.1.js"></script>
+```
+
+Here, the Web client uses socket.io version 2.3.1.
+
+Use the [python-socketio documentation](https://github.com/miguelgrinberg/python-socketio#version-compatibility) to check if the versions are compatible. If necessary change the version of the Web client using [cdn.socket.io](https://cdn.socket.io/).
+
