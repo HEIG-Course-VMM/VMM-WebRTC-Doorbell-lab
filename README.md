@@ -235,3 +235,31 @@ Here, the Web client uses socket.io version 2.3.1.
 
 Use the [python-socketio documentation](https://github.com/miguelgrinberg/python-socketio#version-compatibility) to check if the versions are compatible. If necessary change the version of the Web client using [cdn.socket.io](https://cdn.socket.io/).
 
+### Video/sound is not working on the Raspberry Pi
+
+The **outgoing** video and audio streams on the RPi use the Webcam as source device.
+
+Make sure that the webcam is connected to an USB port before starting the aiortc client.
+
+Check if the camera is detected:
+
+```
+$ arecord -l
+**** List of CAPTURE Hardware Devices ****
+card 3: U0x46d0x81b [USB Device 0x46d:0x81b], device 0: USB Audio [USB Audio]
+  Subdevices: 1/1
+  Subdevice #0: subdevice #0
+```
+
+This shows that a USB audio device is connected.
+
+The **incoming** audio stream should be sent to the headphones on the audio jack. Check this with:
+
+```
+$ aplay -l
+**** List of PLAYBACK Hardware Devices ****
+card 0: Headphones [bcm2835 Headphones], device 0: bcm2835 Headphones [bcm2835 Headphones]
+  ... <snip>
+```
+
+If this is not the case, log into the graphical user interface of the RPi, and using the sound icon in the menu bar on the top change the audio input/output devices.
