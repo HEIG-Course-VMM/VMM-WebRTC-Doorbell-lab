@@ -59,7 +59,7 @@ python3-socketio/focal,now 4.4.0-2 all [installed,automatic]
 python3-socketio-client/focal 0.6.5-0.2 all
   socket.io-client library for Python3
 ```
-Here, python3-socketio version 4.4.0-2 is installed. The client on the Raspberry Pi has to use a compatible version.
+Here, python3-socketio version 4.4.0-2 is installed. **It is very important that the client on the Raspberry Pi uses a compatible version.**. If you have problems with the connection between the server, Raspberry Pi client and the web client, refer to the Troubleshooting section at the end.
 
 Development environment
 --------------------------
