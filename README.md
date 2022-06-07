@@ -186,13 +186,13 @@ Project submission
 
 You have to provide the following elements to the professor:
 
-* A link to the GitHub repository with your final code.
-* A short video (maximum 10 minutes) in which you:
-  * give a demonstration of your system,
-  * explain how you sent a message to the user
-  * show how you structured the code of the RPi client and how you implemented the difficult parts.
+* **A link to the GitHub repository with your final code.**
+* ~~A short video (maximum 10 minutes) in which you:~~
+* ~~give a demonstration of your system,~~
+* ~~explain how you sent a message to the user~~
+* ~~show how you structured the code of the RPi client and how you implemented the difficult parts.~~
 
-All students will vote and the best project will get an additional 0.5 on the grade.
+~~All students will vote and the best project will get an additional 0.5 on the grade.~~
 
 Troubleshooting
 ===============
