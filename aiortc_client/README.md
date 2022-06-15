@@ -1,1 +1,6 @@
-Develop aiortc client to run on the Raspberry Pi here.
+# How to run 
+
+```bash
+$ pip3 install -r requirement.txt
+$ python3 client.py
+```

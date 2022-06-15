@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Simple WebRTC video call application</title>
+    <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.5/build/pure-min.css">
+</head>
+
+<body style="background-color:#fefefe" onload="call()">
+    <div id='mainDiv' align="center">
+        <h1>What is going on near the PI</h1>
+        <div id='callButtons' align="center">
+            <!-- <button class="pure-button" id="callButton" onclick="call()">Call</button> -->
+            <button class="pure-button" id="hangupButton" onclick="hangUp()">Hang up</button>
+        </div>
+        <table class="pure-table" width="70%">
+            <thead>
+                <tr>
+                    <th>Camera</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td width="100%"> <video id="remoteVideo" autoplay playsinline width="100%"></video> </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <script src="https://cdn.socket.io/socket.io-2.3.1.js"></script>
+    <script src='/static/webrtcclient.js'></script>
+</body>
+
+</html>
