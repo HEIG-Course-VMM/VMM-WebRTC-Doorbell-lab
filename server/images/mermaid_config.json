@@ -1,0 +1,9 @@
+{
+  "theme": "neutral",
+  "sequence": {
+      "mirrorActors": false,
+      "actorFontSize": 18,
+      "messageFontSize": 12,
+      "messageFontWeight": "normal"
+  }
+}

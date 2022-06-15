@@ -1,0 +1,38 @@
+sequenceDiagram
+    participant c1 as Caller
+    participant s as Server
+    participant c2 as Callee
+
+    Note over c1, c2: HTTP: get Web page
+    rect rgb(255,248,220)
+    c1 ->> s: GET /
+    s -->> c1: 200 OK index.html
+    c2 ->> s: GET /
+    s -->> c2: 200 OK index.html
+    end
+
+    Note over c1, c2: Websocket signaling: create room
+    rect rgba(255,239,213)
+    c1 ->> s: join(room_name)
+    s -->> c1: created
+    c2 ->> s: join(room_name)
+    s -->> c2: joined
+    s -->> c1: new_peer
+    end
+
+    Note over c1, c2: Websocket signaling: set up WebRTC call
+    rect rgb(255,222,173)
+    c1 ->> c2: invite(SDP offer)
+    c2 ->> c1: ok(SDP answer)
+    c1 ->> c2: ice_candidate(candidate)
+    c2 ->> c1: ice_candidate(candidate)
+
+    Note over c1, c2: Call is established
+    rect rgb(244,164,96)
+    c1 -> c2: Peer-to-peer media (video, data)
+    end
+
+    Note over c1, c2: Call termination
+    c1 ->> c2: bye(room_name)
+    c2 ->> s: bye(room_name)
+    end
